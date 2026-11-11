@@ -61,7 +61,14 @@ async function launch() {
 }
 
 /* 한 시연의 프레임을 모으는 도구 묶음 */
-function recorder(cdp, name, width, height) {
+/* 선택자들이 차지하는 화면 영역(합친 사각형)을 [x1, y1, x2, y2] 로 돌려주는 페이지 식 */
+const rectOf = (sel) => `(() => { const els = [...document.querySelectorAll(${JSON.stringify(sel)})];
+  if (!els.length) return null; let a = [1e9, 1e9, -1e9, -1e9];
+  for (const e of els) { const r = e.getBoundingClientRect(); a = [Math.min(a[0], r.left), Math.min(a[1], r.top), Math.max(a[2], r.right), Math.max(a[3], r.bottom)]; }
+  return a.map(Math.round); })()`;
+
+/* regions : { 이름: 선택자 } — 찍을 때마다 그 영역 좌표를 함께 저장해, GIF 에서 강조할 곳만 잘라 쓴다 */
+function recorder(cdp, name, width, height, regions = {}) {
   const dir = path.join(FRAMES, name);
   fs.rmSync(dir, { recursive: true, force: true });
   fs.mkdirSync(dir, { recursive: true });
@@ -75,10 +82,12 @@ function recorder(cdp, name, width, height) {
       return r.result.value;
     },
     async shot(ms, caption, extra = {}) {
+      const boxes = {};
+      for (const [key, sel] of Object.entries(regions)) boxes[key] = await this.js(rectOf(sel));
       const { data } = await cdp.send('Page.captureScreenshot', { format: 'png' });
       const file = `${String(frames.length).padStart(2, '0')}.png`;
       fs.writeFileSync(path.join(dir, file), Buffer.from(data, 'base64'));
-      frames.push({ file, ms, caption, ...extra });
+      frames.push({ file, ms, caption, regions: boxes, ...extra });
     },
     save(meta = {}) { fs.writeFileSync(path.join(dir, 'frames.json'), JSON.stringify({ ...meta, frames }, null, 2)); },
   };
@@ -86,7 +95,11 @@ function recorder(cdp, name, width, height) {
 
 // ───────── 시연 1 : Diff · TEXT Patch (phase1.html) ─────────
 async function demoPatch(cdp) {
-  const r = recorder(cdp, '1-diff-patch', 1280, 900);
+  const r = recorder(cdp, '1-diff-patch', 1280, 900, {
+    actual: '#actual > .title, #actual > p:first-of-type, #actual > ul.todo',
+    test: '#test',
+    log: 'section.log',
+  });
   await r.size();
   await r.goto(pageUrl('phase1.html'));
   await r.shot(1600, '처음 : 실제 영역(왼쪽)을 Virtual DOM 으로 읽어 테스트 영역(오른쪽)에 그렸다');
@@ -121,7 +134,12 @@ async function demoPatch(cdp) {
 
 // ───────── 시연 2 : Hooks → 화면 갱신 (오목, v2) ─────────
 async function demoHooks(cdp) {
-  const r = recorder(cdp, '2-hooks-render', 1440, 900);
+  const near = [6, 7, 8].flatMap((row) => [5, 6, 7, 8, 9].map((col) => `.cell[data-i="${row * 15 + col}"]`)).join(', ');
+  const r = recorder(cdp, '2-hooks-render', 1440, 900, {
+    board: near,
+    hooks: '.hooks li:nth-child(-n+2)',
+    log: 'ol.log li:nth-child(-n+3)',
+  });
   await r.size();
   await r.goto(pageUrl('index.html', '?engine=v2-microtask'));
   await r.js(`(() => { document.getElementById('panel-toggle').click(); document.querySelector('.detail-toggle').click();
@@ -133,6 +151,10 @@ async function demoHooks(cdp) {
 
   const moves = `[...document.querySelectorAll('.log li')].filter((li) => li.textContent.includes('착수')).length`;
   for (const [n, cell] of [[1, 112], [2, 113]]) {
+    // 타이머가 막 한 번 울린 직후에 둔다. 다음 울림(1초 뒤)이 두 장면 사이에 끼어 패널을 덮어쓰지 않게 한다
+    const ticks = `[...document.querySelectorAll('.log li')].filter((li) => li.textContent.includes('타이머')).length`;
+    const tick0 = await r.js(ticks);
+    for (let i = 0; i < 60 && (await r.js(ticks)) === tick0; i++) await sleep(25);
     const movesBefore = await r.js(moves);
     await r.js(`document.querySelector('.cell[data-i="${cell}"]').click()`);
     await sleep(60);
@@ -140,7 +162,7 @@ async function demoHooks(cdp) {
       count: document.querySelector('[data-cell="patch-count"]').textContent,
       create: [...document.querySelectorAll('.patch-list li.patch-create')].map((li) => li.textContent.split(' — ')[0]).join(', ') })`);
     await r.shot(2200, `${n}수째 착수 → setter 2개 → ${after.hooks} → 렌더 ${after.renders}번 (${after.count})`);
-    await sleep(500);
+    await sleep(250);
     await r.shot(1300, `노란 칸 = 이번 커밋에서 실제로 고친 DOM · 새로 만든 노드 : ${after.create}`);
   }
   r.save({ width: 960 });
@@ -150,7 +172,7 @@ async function demoHooks(cdp) {
 async function demoBatch(cdp) {
   const runs = {};
   for (const engine of ['v0', 'v2-microtask']) {
-    const r = recorder(cdp, `3-batch-${engine}`, 1440, 900);
+    const r = recorder(cdp, `3-batch-${engine}`, 1440, 900, { select: '#engine-select', log: 'ol.log' });
     await r.size();
     await r.goto(pageUrl('index.html', `?engine=${engine}`));
     await r.js(`document.getElementById('panel-toggle').click()`);
