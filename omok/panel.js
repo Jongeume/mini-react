@@ -20,11 +20,21 @@
 
   // 리스너 API 호출 수 : 엔진과 무관하게 Element.prototype 의 add/removeEventListener 를 감싸 커밋 사이 호출을 센다
   let listenerOps = 0;
+  let counting = false; // 엔진이 부를 때만 센다 — 패널이 자기 DOM 을 만들 때는 끈다
+  let quietDepth = 0;
   for (const name of ['addEventListener', 'removeEventListener']) {
     const original = root.Element.prototype[name];
     root.Element.prototype[name] = function (...args) {
-      listenerOps += 1;
+      if (counting && quietDepth === 0) listenerOps += 1;
       return original.apply(this, args);
+    };
+  }
+
+  /* 패널 자신의 DOM 작업은 리스너 호출 수에 넣지 않도록 fn 을 감싸는 함수 */
+  function quiet(fn) {
+    return function (...args) {
+      quietDepth += 1;
+      try { return fn.apply(this, args); } finally { quietDepth -= 1; }
     };
   }
 
@@ -89,7 +99,7 @@
   }
 
   /* 커밋 보고 하나를 받아 누계 · 마지막 커밋 · 기록 · Hooks 를 패널에 그리는 함수 */
-  function onCommit(report) {
+  const onCommit = quiet(function (report) {
     const records = observer.takeRecords();
     totals.dom += records.length;
     if (panel.querySelector('#flash-dom').checked) flashMutations(records);
@@ -127,7 +137,7 @@
 
     if (report.kind === 'update') detail.commitNo = totals.commits;
     renderPatches();
-  }
+  });
 
   // ───────── 세부 목록 : Phase 1 엔진(diff · VDOM · path)을 들여다보기 ─────────
 
@@ -191,7 +201,7 @@
   }
 
   /* 마지막 diff 명령 목록을 그리는 함수 (세부 목록이 열려 있을 때만) */
-  function renderPatches() {
+  const renderPatches = quiet(function () {
     if (!detail.open) return;
     const hide = detailEl.querySelector('#hide-event-only').checked;
     const all = detail.patches;
@@ -219,7 +229,7 @@
       li.textContent = all.length === 0 ? '아직 diff 가 없다 (처음 그리기는 diff 없이 mount)' : '모두 클릭 함수 교체뿐';
       ol.appendChild(li);
     }
-  }
+  });
 
   /* 입력한 path 의 VDOM 노드와 실제 DOM 노드를 나란히 보여 주는 함수 */
   function showPath() {
@@ -248,16 +258,16 @@
     const s = doc.createElement('summary');
     s.textContent = `${label}  · 자식 ${v.children.length}`;
     d.appendChild(s);
-    d.addEventListener('toggle', () => {
+    d.addEventListener('toggle', quiet(() => {
       if (!d.open || d.dataset.filled) return;
       d.dataset.filled = '1';
       v.children.forEach((c, i) => d.appendChild(treeNode(c, path.concat(i))));
-    });
+    }));
     return d;
   }
 
   /* 지금 VDOM(엔진이 보관한 this.vdom 의 복사본)으로 트리를 다시 그리는 함수 */
-  function renderTree() {
+  const renderTree = quiet(function () {
     const box = detailEl.querySelector('.vdom-tree');
     box.textContent = '';
     const vdom = Omok.app.inspect().vdom;
@@ -266,7 +276,7 @@
     const top = treeNode(vdom, []);
     top.open = true;
     box.appendChild(top);
-  }
+  });
 
   /* 세부 목록을 펼치거나 접는 함수 (엔진 패널 오른쪽에 패널이 하나 더 나온다) */
   function setDetail(open) {
@@ -294,5 +304,6 @@
 
   Omok.app = new FunctionComponent(Omok.App, {}, container);
   Omok.app.onCommit(onCommit);
+  counting = true;
   Omok.app.mount();
 })(globalThis);

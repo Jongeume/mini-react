@@ -171,3 +171,26 @@ test('[v3-handlers] 타이머 1회 커밋은 PROPS 0, HANDLERS > 0, 리스너 AP
   assert.ok(p.HANDLERS > 0);
   assert.strictEqual(win.document.querySelector('[data-cell="listener-ops"]').textContent, '0');
 });
+
+test('[v3-handlers] 세부 목록을 열고 숨김 체크를 꺼도 타이머 커밋의 리스너 API 호출은 0 (패널 자신의 리스너는 세지 않는다)', async (t) => {
+  const { win } = loadPage(t, 'v3-handlers');
+  const doc = win.document;
+  doc.getElementById('panel-toggle').click();
+  doc.querySelector('.detail-toggle').click();
+  doc.getElementById('hide-event-only').checked = false;
+  place(win, 112);
+  await tick();
+  win.Omok.tick();
+  await tick();
+  assert.ok(doc.querySelectorAll('.patch-list li').length > 0);
+  assert.strictEqual(doc.querySelector('[data-cell="listener-ops"]').textContent, '0');
+});
+
+test('[v2-microtask] 착수 뒤 타이머 커밋은 리스너 API 호출이 0 보다 크다 — 세기 장치가 동작하는지 확인', async (t) => {
+  const { win } = loadPage(t, 'v2-microtask');
+  place(win, 112);
+  await tick();
+  win.Omok.tick();
+  await tick();
+  assert.ok(Number(win.document.querySelector('[data-cell="listener-ops"]').textContent) > 0);
+});
