@@ -3,8 +3,8 @@
 과제 조건별 충족 여부와 증거입니다. 조건은 과제 명세의 Phase 1, Phase 2 요구사항과 제약 조건에서 가져왔습니다.
 
 - 경로는 저장소 루트 기준입니다.
-- Phase 1 검증 페이지와 단위 테스트는 `engines/v1-batch/`를 사용합니다. 오목 데모의 기본 엔진은 `engines/v2-microtask/`이며 같은 이름의 함수가 있습니다.
-- `vdom.js`, `diff.js`, `patch.js`는 세 엔진 버전에서 같은 내용입니다.
+- Phase 1 검증 페이지(`phase1.html`)는 `engines/v1-batch/`를 사용합니다. 공통 단위 테스트는 `engines/v2-microtask/`, `engines/v3-handlers/`, `engines/v4-ref/` 세 엔진에서 같이 실행합니다(`test/helpers.js`의 `COMMON_ENGINES`). 오목 데모의 기본 엔진은 `engines/v4-ref/`이며 같은 이름의 함수가 있습니다.
+- `vdom.js`, `diff.js`, `patch.js`는 v0, v1, v2에서 같은 내용이고, v3부터는 핸들러 상자(`HANDLERS`)로, v4는 ref 처리로 달라집니다.
 - 표의 "테스트"는 `test/` 아래 파일의 `test()` 이름입니다.
 
 ## Phase 1: Virtual DOM, Diff, Patch, State History
@@ -32,7 +32,7 @@
 
 | 조건 | 충족 | 증거 |
 | --- | :---: | --- |
-| `FunctionComponent` 클래스 | 충족 | `engines/v1-batch/component.js`, `engines/v2-microtask/component.js`: `class FunctionComponent`. 테스트 `생성자: container 가 없으면 에러` (`test/component.test.js`) |
+| `FunctionComponent` 클래스 | 충족 | `engines/*/component.js`(v1 이후 각 엔진): `class FunctionComponent`. 테스트 `생성자: container 가 없으면 에러` (`test/component.test.js`) |
 | `hooks` 배열 (호출 순서가 칸 번호) | 충족 | `component.js`의 `this.hooks`, `hooks.js`의 `nextSlot`. 테스트 `useState: 두 개는 각자 값을 유지하고 inspect 순서는 호출 순서`, `다시 렌더할 때 hookIndex 가 0 부터 시작한다` (`test/hooks.test.js`) |
 | `mount` | 충족 | `FunctionComponent.mount`. 테스트 `mount: 함수를 펼쳐 컨테이너에 처음 그린다`, `mount: 두 번 부르면 에러` (`test/component.test.js`) |
 | `update` | 충족 | `FunctionComponent.update`, `updateOnce`. 테스트 `클릭 → 바뀐 글자 노드 외 요소는 같은 객체`, `update 보고: kind 와 패치 개수` (`test/update.test.js`) |
@@ -58,6 +58,8 @@
 | 항목 | 증거 |
 | --- | --- |
 | 세 가지 배칭 엔진 (v0 배칭 없음, v1 이벤트 경계, v2 마이크로태스크) | `engines/v0/`, `engines/v1-batch/`, `engines/v2-microtask/`. 테스트 `test/batch.test.js`, `test/v2-microtask.test.js` |
+| v3 핸들러 상자 (`HANDLERS` 명령) | `engines/v3-handlers/`. 테스트 `test/v3-handlers.test.js`의 `핸들러만 바뀌면 PROPS 대신 HANDLERS 하나`, `HANDLERS 적용은 addEventListener · removeEventListener 를 부르지 않는다` |
+| v4 `useRef`와 DOM `ref` | `engines/v4-ref/`의 `useRef`, `syncRefs`. 테스트 `test/v4-ref.test.js`의 `useRef 는 렌더마다 같은 객체를 돌려준다`, `effect 안에서 ref.current 는 이미 실제 요소다 (mount · update)` |
 | 렌더 중 예외 시 값 복원 | 테스트 `렌더 예외 뒤 복구: 화면 그대로, 값 되돌림, 이어서 정상` (`test/update.test.js`) |
 | effect의 무한 갱신 차단 | 테스트 `deps 없는 effect 가 무조건 setState → 50 번 뒤 update loop 에러` (`test/effect.test.js`) |
 
@@ -66,11 +68,11 @@
 | 항목 | 상태 | 내용 |
 | --- | --- | --- |
 | `key` 기반 목록 비교 | 미구현 | 자식을 위치로만 비교합니다. 앞쪽 삽입이나 순서 변경 시 변경 명령이 늘어나지만 결과는 정확합니다. 테스트 `목록 맨 앞에 넣으면 같은 번호끼리 비교라 뒤 항목들이 TEXT 로 바뀌고 끝에 CREATE` (`test/diff.test.js`)가 이 동작을 고정합니다. |
-| `useRef` | 미구현 | 오목 타이머는 모듈 수준 객체로 최신 값을 참조합니다. |
+| 콜백 ref | 미구현 | `useRef`와 객체 ref는 v4에서 구현했습니다. 함수 ref는 예외입니다. 테스트 `콜백 ref 는 예외` (`test/v4-ref.test.js`) |
 | 같은 종류 Hook끼리 순서가 바뀌는 경우 감지 | 미구현 | Hook 개수와 종류의 변경만 감지합니다. |
 | 자식 컴포넌트의 상태와 Hook | 범위 밖 | 과제 제약에 따라 루트에서만 상태를 사용합니다. |
-| 안정적인 이벤트 핸들러 참조 | 미구현 | 렌더마다 핸들러가 새로 생성되어 `PROPS` 명령이 늘어납니다. |
-| 단위 테스트의 v2 기준 전환 | 미구현 | v2 전용 테스트는 10개이고 나머지는 v1 엔진을 기준으로 합니다. |
+| 안정적인 이벤트 핸들러 참조 | v3에서 해결 | 렌더마다 새 함수가 생기는 것은 같지만, 함수에서 함수로 바뀐 이벤트는 `HANDLERS` 명령으로 표의 값만 교체합니다. 자식 Hook 금지 때문에 `useCallback`은 쓰지 않았습니다. |
+| 단위 테스트의 v2 이후 기준 전환 | 충족 | 공통 테스트가 v2, v3, v4 세 엔진에서 실행되고, 오목 페이지 테스트는 다섯 엔진에서 실행됩니다. `test/batch.test.js`는 v1 엔진을 직접 불러옵니다. |
 | `<plaintext>`, MathML의 드문 경우 (`annotation-xml`, `mglyph`) | 범위 밖 | Phase 1 변환의 알려진 한계입니다. |
 | 줄바꿈이 든 공백만 있는 텍스트 | 의도적 제외 | 변환에서 버립니다. 같은 줄의 공백은 유지합니다. |
 | 검증 페이지의 자동 테스트 | 없음 | `phase1/app.js`는 브라우저에서 확인했습니다. |
