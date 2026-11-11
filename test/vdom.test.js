@@ -200,7 +200,7 @@ test('clone 은 깊은 복사다', () => {
   assert.equal(v.props.a, '1');
 });
 
-// ───────── Codex 리뷰 ① 에서 나온 경우 (docs/codex-review-log.md) ─────────
+// ───────── 독립 리뷰 ① 에서 나온 경우 (docs/verification.md) ─────────
 
 test('[C1-1] type="file" input 에 value 가 있어도 render 가 멈추지 않는다', () => {
   const { document } = setup();
