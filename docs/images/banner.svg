@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" font-family="Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0b2a6b"/>
-      <stop offset="1" stop-color="#1b64da"/>
+      <stop offset="0" stop-color="#2e5b51"/>
+      <stop offset="1" stop-color="#1b4848"/>
     </linearGradient>
     <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-      <path d="M0 0 L10 5 L0 10 z" fill="#9cc3ff"/>
+      <path d="M0 0 L10 5 L0 10 z" fill="#7fe8bd"/>
     </marker>
   </defs>
 
@@ -15,31 +15,31 @@
 
   <!-- 왼쪽 : 제목 -->
   <text x="64" y="142" font-size="64" font-weight="800" fill="#ffffff" letter-spacing="-1">mini-react</text>
-  <text x="66" y="192" font-size="22" font-weight="500" fill="#dbe8ff">Virtual DOM · Diff · Patch · Hooks를 직접 구현하고,</text>
-  <text x="66" y="224" font-size="22" font-weight="500" fill="#dbe8ff">렌더를 <tspan font-weight="800" fill="#ffffff">언제 한 번으로 묶는지</tspan> 엔진 세 버전으로 비교했습니다</text>
+  <text x="66" y="192" font-size="22" font-weight="500" fill="#d6f3e8">Virtual DOM · Diff · Patch · Hooks를 직접 구현하고,</text>
+  <text x="66" y="224" font-size="22" font-weight="500" fill="#d6f3e8">렌더를 <tspan font-weight="800" fill="#ffffff">언제 한 번으로 묶는지</tspan> 엔진 세 버전으로 비교했습니다</text>
 
   <rect x="64" y="262" width="236" height="40" rx="20" fill="#ffffff" fill-opacity="0.12" stroke="#ffffff" stroke-opacity="0.35"/>
   <text x="182" y="288" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Phase 1 · VDOM · Diff · Patch</text>
   <rect x="314" y="262" width="200" height="40" rx="20" fill="#ffffff" fill-opacity="0.12" stroke="#ffffff" stroke-opacity="0.35"/>
   <text x="414" y="288" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Phase 2 · Hooks · 배칭</text>
 
-  <text x="66" y="346" font-size="15" fill="#a9c6f5">크래프톤 정글 · Vanilla JS · 런타임 의존성 0</text>
+  <text x="66" y="346" font-size="15" fill="#9fd4c1">크래프톤 정글 · Vanilla JS · 런타임 의존성 0</text>
 
   <!-- 오른쪽 : 착수 1번의 setter 2개 → 엔진별 커밋 -->
-  <rect x="640" y="48" width="500" height="304" rx="20" fill="#0a2257" fill-opacity="0.45"/>
-  <text x="668" y="86" font-size="16" font-weight="700" fill="#dbe8ff">착수 1번 = setter 2번 호출</text>
+  <rect x="640" y="48" width="500" height="304" rx="20" fill="#0f302f" fill-opacity="0.45"/>
+  <text x="668" y="86" font-size="16" font-weight="700" fill="#d6f3e8">착수 1번 = setter 2번 호출</text>
 
   <!-- v0 -->
   <text x="668" y="126" font-size="16" font-weight="800" fill="#ffffff">v0</text>
-  <text x="698" y="126" font-size="13" fill="#a9c6f5">setter마다 바로 렌더</text>
-  <rect x="668" y="140" width="96" height="36" rx="10" fill="#3182f6"/>
+  <text x="698" y="126" font-size="13" fill="#9fd4c1">setter마다 바로 렌더</text>
+  <rect x="668" y="140" width="96" height="36" rx="10" fill="#05d184"/>
   <text x="716" y="164" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">setter ①</text>
-  <path d="M764 158 H812" stroke="#9cc3ff" stroke-width="2" marker-end="url(#arr)"/>
+  <path d="M764 158 H812" stroke="#7fe8bd" stroke-width="2" marker-end="url(#arr)"/>
   <rect x="816" y="140" width="72" height="36" rx="10" fill="#ffffff" fill-opacity="0.12" stroke="#ff8a8a" stroke-width="2"/>
   <text x="852" y="164" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">커밋</text>
-  <rect x="912" y="140" width="96" height="36" rx="10" fill="#3182f6"/>
+  <rect x="912" y="140" width="96" height="36" rx="10" fill="#05d184"/>
   <text x="960" y="164" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">setter ②</text>
-  <path d="M1008 158 H1036" stroke="#9cc3ff" stroke-width="2" marker-end="url(#arr)"/>
+  <path d="M1008 158 H1036" stroke="#7fe8bd" stroke-width="2" marker-end="url(#arr)"/>
   <rect x="1040" y="140" width="72" height="36" rx="10" fill="#ffffff" fill-opacity="0.12" stroke="#ff8a8a" stroke-width="2"/>
   <text x="1076" y="164" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">커밋</text>
 
@@ -47,18 +47,18 @@
 
   <!-- v2 -->
   <text x="668" y="234" font-size="16" font-weight="800" fill="#ffffff">v2</text>
-  <text x="698" y="234" font-size="13" fill="#a9c6f5">값만 저장하고, 호출 스택이 빈 뒤 한 번</text>
-  <rect x="668" y="248" width="96" height="36" rx="10" fill="#3182f6"/>
+  <text x="698" y="234" font-size="13" fill="#9fd4c1">값만 저장하고, 호출 스택이 빈 뒤 한 번</text>
+  <rect x="668" y="248" width="96" height="36" rx="10" fill="#05d184"/>
   <text x="716" y="272" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">setter ①</text>
-  <rect x="780" y="248" width="96" height="36" rx="10" fill="#3182f6"/>
+  <rect x="780" y="248" width="96" height="36" rx="10" fill="#05d184"/>
   <text x="828" y="272" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">setter ②</text>
-  <path d="M876 266 H1036" stroke="#9cc3ff" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arr)"/>
-  <text x="956" y="258" font-size="12" fill="#a9c6f5" text-anchor="middle">마이크로태스크</text>
-  <rect x="1040" y="248" width="72" height="36" rx="10" fill="#3182f6" stroke="#ffffff" stroke-width="2"/>
+  <path d="M876 266 H1036" stroke="#7fe8bd" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+  <text x="956" y="258" font-size="12" fill="#9fd4c1" text-anchor="middle">마이크로태스크</text>
+  <rect x="1040" y="248" width="72" height="36" rx="10" fill="#05d184" stroke="#ffffff" stroke-width="2"/>
   <text x="1076" y="272" font-size="15" font-weight="700" fill="#ffffff" text-anchor="middle">커밋</text>
 
   <rect x="668" y="316" width="12" height="12" rx="3" fill="none" stroke="#ff8a8a" stroke-width="2"/>
-  <text x="688" y="327" font-size="13" fill="#dbe8ff">커밋 2번, 중간 상태가 그려짐</text>
-  <rect x="900" y="316" width="12" height="12" rx="3" fill="#3182f6" stroke="#ffffff"/>
-  <text x="920" y="327" font-size="13" fill="#dbe8ff">커밋 1번</text>
+  <text x="688" y="327" font-size="13" fill="#d6f3e8">커밋 2번, 중간 상태가 그려짐</text>
+  <rect x="900" y="316" width="12" height="12" rx="3" fill="#05d184" stroke="#ffffff"/>
+  <text x="920" y="327" font-size="13" fill="#d6f3e8">커밋 1번</text>
 </svg>

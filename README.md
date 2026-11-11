@@ -7,10 +7,10 @@
 **"React의 핵심을 직접 만들고, 같은 앱을 엔진만 바꿔 가며 렌더 시점을 비교했습니다"**
 
 <p>
-  <img src="https://img.shields.io/badge/Vanilla-JS-3182f6?style=for-the-badge&labelColor=0b2a6b">
-  <img src="https://img.shields.io/badge/runtime_deps-0-3182f6?style=for-the-badge&labelColor=0b2a6b">
-  <img src="https://img.shields.io/badge/tests-202_passing-3182f6?style=for-the-badge&labelColor=0b2a6b">
-  <img src="https://img.shields.io/badge/engines-v0_·_v1_·_v2-3182f6?style=for-the-badge&labelColor=0b2a6b">
+  <img src="https://img.shields.io/badge/Vanilla-JS-05d184?style=for-the-badge&labelColor=1e4d4b">
+  <img src="https://img.shields.io/badge/runtime_deps-0-05d184?style=for-the-badge&labelColor=1e4d4b">
+  <img src="https://img.shields.io/badge/tests-202_passing-05d184?style=for-the-badge&labelColor=1e4d4b">
+  <img src="https://img.shields.io/badge/engines-v0_·_v1_·_v2-05d184?style=for-the-badge&labelColor=1e4d4b">
 </p>
 
 <sub>크래프톤 정글 · 미니 React 구현 과제</sub><br>
@@ -60,9 +60,9 @@ flowchart TB
   GAME -->|Hook 호출| HOOKS
   PATCH -->|노드 생성| VDOM
 
-  classDef app fill:#eef4ff,stroke:#3182f6,color:#0b2a6b
-  classDef core fill:#3182f6,stroke:#1b64da,color:#ffffff
-  classDef mod fill:#ffffff,stroke:#3182f6,color:#0b2a6b
+  classDef app fill:#e8faf2,stroke:#05b673,color:#16403b
+  classDef core fill:#05d184,stroke:#04a86a,color:#ffffff
+  classDef mod fill:#ffffff,stroke:#05b673,color:#16403b
   class PANEL,GAME app
   class COMP core
   class HOOKS,DIFF,PATCH,VDOM mod
@@ -105,8 +105,8 @@ flowchart TB
   APP --> SAVE
   BOARD --> CELL
 
-  classDef root fill:#3182f6,stroke:#1b64da,color:#ffffff
-  classDef child fill:#ffffff,stroke:#3182f6,color:#0b2a6b
+  classDef root fill:#05d184,stroke:#04a86a,color:#ffffff
+  classDef child fill:#ffffff,stroke:#05b673,color:#16403b
   class APP root
   class P1,P2,INFO,BOARD,MOVES,SAVE,CELL child
 ```
