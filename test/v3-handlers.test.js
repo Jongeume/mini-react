@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const { setup, eachEngine, tick } = require('./helpers');
 
-eachEngine(['v3-handlers'], ({ vdom: { h }, diff: { diff }, hooks: H, component: { FunctionComponent, countPatches } }, name, test) => {
+eachEngine(['v3-handlers', 'v4-ref'], ({ vdom: { h }, diff: { diff }, hooks: H, component: { FunctionComponent, countPatches } }, name, test) => {
   const a = () => 'a';
   const b = () => 'b';
 

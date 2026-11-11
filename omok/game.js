@@ -179,12 +179,12 @@
       live.over = over;
     }
 
-    // 착수로 기보가 늘면 마지막 줄이 보이게 스크롤한다 (jsdom 처럼 scrollIntoView 가 없으면 건너뜀)
+    // 새 수를 두면(무르기 뒤 다시 두어 길이가 같아도) 마지막 줄이 보이게 스크롤한다 (jsdom 처럼 scrollIntoView 가 없으면 건너뜀)
     if (HAS_REF) {
       useEffect(() => {
         const el = lastMoveRef.current;
         if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest' });
-      }, [history.length]);
+      }, [history[history.length - 1]]);
     }
 
     // 1초마다 setter 두 개 — 엔진 이벤트 밖(타이머)에서 부르는 갱신의 예.

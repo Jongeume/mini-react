@@ -116,7 +116,13 @@ eachEngine(['v4-ref'], ({ vdom: { h, toHtml }, patch: P, hooks: H, component: { 
     assert.equal(b.current.localName, 'p');
   });
 
-  test('렌더 예외 복구 뒤 ref 는 화면 요소를 가리킨다', async () => {
+  test('ref: null 은 ref 가 없는 것과 같아 vnode 에 ref 칸을 만들지 않는다', () => {
+    const vnode = h('p', { ref: null }, 'x');
+    assert.equal('ref' in vnode, false);
+    assert.equal('ref' in vnode.props, false);
+  });
+
+  test('patch 실패 복구 뒤 ref 는 화면 요소를 가리킨다', async () => {
     let r;
     let set;
     const { rootEl } = start(() => {

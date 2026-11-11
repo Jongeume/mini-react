@@ -1,6 +1,6 @@
 # ADR 0004. 마이크로태스크 배칭 (v2)
 
-상태: 채택 (오목 데모의 기본 엔진) · 2026-11-11
+상태: 채택 후 ADR 0006(v4 useRef)으로 오목 데모의 기본 엔진 자리를 넘김 · 2026-11-11
 
 ## 배경
 
@@ -26,7 +26,7 @@ setter 는 값만 저장하고 렌더는 마이크로태스크로 한 번만 예
 | `mount`, 공개 `update()` | 지금처럼 동기입니다. | `component.js` |
 
 - `engines/v2-microtask/` 는 `vdom.js`, `diff.js`, `patch.js` 가 v1 과 같고, `hooks.js` 와 `component.js` 만 다릅니다.
-- 오목 데모는 `omok/loader.js` 가 주소의 `?engine=` 값으로 엔진 폴더를 고릅니다. 기본값은 `v2-microtask` 이고 `v1-batch`, `v0` 도 고를 수 있습니다.
+- 오목 데모는 `omok/loader.js` 가 주소의 `?engine=` 값으로 엔진 폴더를 고릅니다. 기본값은 당시 `v2-microtask` 였고 지금은 `v4-ref` 입니다(ADR 0006). `v1-batch`, `v0` 도 고를 수 있습니다.
 
 ## 고려한 대안
 
