@@ -329,14 +329,14 @@
     }
   }
 
-  /* 패치 종류별 개수를 세어 다섯 키가 모두 있는 객체로 돌려주는 함수 */
+  /* 패치 종류별 개수를 세어 여섯 키가 모두 있는 객체로 돌려주는 함수 */
   function countPatches(patches) {
     const counts = { CREATE: 0, REMOVE: 0, REPLACE: 0, TEXT: 0, PROPS: 0, HANDLERS: 0 };
-    for (const p of patches) counts[p.type] += 1;
+    for (const p of patches) counts[p.type] = (counts[p.type] || 0) + 1;
     return counts;
   }
 
-  const api = { FunctionComponent, expand };
+  const api = { FunctionComponent, expand, countPatches };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MiniReact = Object.assign(root.MiniReact || {}, api);

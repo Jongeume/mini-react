@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const { setup, eachEngine, tick } = require('./helpers');
 
-eachEngine(['v3-handlers'], ({ vdom: { h }, diff: { diff }, hooks: H, component: { FunctionComponent } }, name, test) => {
+eachEngine(['v3-handlers'], ({ vdom: { h }, diff: { diff }, hooks: H, component: { FunctionComponent, countPatches } }, name, test) => {
   const a = () => 'a';
   const b = () => 'b';
 
@@ -103,5 +103,12 @@ eachEngine(['v3-handlers'], ({ vdom: { h }, diff: { diff }, hooks: H, component:
     await tick();
     assert.equal(typeof reports[reports.length - 1].patches.HANDLERS, 'number');
     assert.equal(reports[reports.length - 1].patches.HANDLERS, 1);
+  });
+
+  test('countPatches 는 모르는 종류도 0 부터 센다', () => {
+    const counts = countPatches([{ type: 'MOVE' }, { type: 'MOVE' }, { type: 'TEXT' }]);
+    assert.equal(counts.MOVE, 2);
+    assert.equal(counts.TEXT, 1);
+    assert.equal(counts.HANDLERS, 0);
   });
 });
