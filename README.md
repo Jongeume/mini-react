@@ -6,7 +6,7 @@
 [![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-3182f6)](#제약-조건)
 [![Tests](https://img.shields.io/badge/tests-202%20passed-2ea44f)](#테스트)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white)](#실행)
-[![Live demo](https://img.shields.io/badge/demo-raw.githack-3182f6)](https://raw.githack.com/mg-2023/sw-ai-week11-12/feat-Jongeume/index.html)
+[![Live demo](https://img.shields.io/badge/demo-raw.githack-3182f6)](https://raw.githack.com/Jongeume/mini-react/dev/index.html)
 
 Mini React는 Virtual DOM, Diff, Patch, 함수형 컴포넌트와 Hooks를 외부 라이브러리 없이 구현한 Vanilla JavaScript 렌더링 엔진입니다. 오목 데모 애플리케이션으로 동작을 검증하며, 같은 애플리케이션을 세 가지 엔진 버전으로 실행하여 배칭 방식의 차이를 비교할 수 있습니다.
 
@@ -213,13 +213,13 @@ sequenceDiagram
 
 ### 온라인 데모
 
-`feat-Jongeume` 브랜치를 raw.githack.com으로 제공합니다. 처음 접속하면 안내 화면이 표시되며, "Open the page"를 선택하면 데모가 열립니다.
+`dev` 브랜치를 raw.githack.com으로 제공합니다. 처음 접속하면 안내 화면이 표시되며, "Open the page"를 선택하면 데모가 열립니다.
 
 | 시연 | 링크 | 조작 |
 | --- | --- | --- |
-| 1. Diff와 Patch | [phase1.html](https://raw.githack.com/mg-2023/sw-ai-week11-12/feat-Jongeume/phase1.html) | 테스트 영역 수정 후 Patch |
-| 2. Hooks | [오목 (v2)](https://raw.githack.com/mg-2023/sw-ai-week11-12/feat-Jongeume/index.html) | 엔진 패널에서 "바뀐 DOM 강조"와 "세부 목록" 선택 |
-| 3. 배칭 | [v0](https://raw.githack.com/mg-2023/sw-ai-week11-12/feat-Jongeume/index.html?engine=v0), [v1](https://raw.githack.com/mg-2023/sw-ai-week11-12/feat-Jongeume/index.html?engine=v1-batch), [v2](https://raw.githack.com/mg-2023/sw-ai-week11-12/feat-Jongeume/index.html?engine=v2-microtask) | 엔진 패널의 커밋 기록 비교 |
+| 1. Diff와 Patch | [phase1.html](https://raw.githack.com/Jongeume/mini-react/dev/phase1.html) | 테스트 영역 수정 후 Patch |
+| 2. Hooks | [오목 (v2)](https://raw.githack.com/Jongeume/mini-react/dev/index.html) | 엔진 패널에서 "바뀐 DOM 강조"와 "세부 목록" 선택 |
+| 3. 배칭 | [v0](https://raw.githack.com/Jongeume/mini-react/dev/index.html?engine=v0), [v1](https://raw.githack.com/Jongeume/mini-react/dev/index.html?engine=v1-batch), [v2](https://raw.githack.com/Jongeume/mini-react/dev/index.html?engine=v2-microtask) | 엔진 패널의 커밋 기록 비교 |
 
 시연 GIF는 `node docs/demo/record.mjs` 실행 후 `python docs/demo/make_gif.py`로 다시 생성할 수 있습니다.
 
