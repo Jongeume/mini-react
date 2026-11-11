@@ -17,12 +17,12 @@
 | 컨테이너 | 결과를 컨테이너 태그로 감쌉니다. path `[]` 가 항상 컨테이너라 루트가 통째로 교체(REPLACE)되는 일이 없습니다. | `wrapInContainer` |
 | 상태 저장 | 컴포넌트 객체의 `hooks` 배열에 Hook 을 부른 순서대로 저장합니다. 렌더마다 번호를 0 으로 되돌립니다. | `hooks.js` `nextSlot`, `component.js` `run` |
 | Hook 규칙 검사 | 개수가 달라지거나 같은 번호의 종류(`state`, `memo`, `effect`)가 달라지면 예외입니다. 컴포넌트 밖과 자식 렌더 중의 호출도 예외입니다. | `takeIndex`, `slotAt`, `assertHookAllowed` |
-| 자식 컴포넌트 | props 와 `children` 의 얕은 복사본을 받습니다. 자식 안 Hook 은 예외이고, 자식이 배열을 돌려주면 부모의 자식 목록에 펼칩니다. | `callChild`, `expandAll` |
+| 자식 컴포넌트 | props 의 얕은 복사본을 받습니다. `children` 배열은 복사하지 않고 같은 배열을 넘깁니다. 자식 안 Hook 은 예외이고, 자식이 배열을 돌려주면 부모의 자식 목록에 펼칩니다. | `callChild`, `expandAll` |
 | setState | 함수면 `next(지금 값)` 으로 계산하고, `Object.is` 로 같으면 렌더하지 않습니다. 렌더 중 호출은 예외입니다. `destroy()` 뒤 호출은 무시합니다. | `hooks.js` `makeSetter` |
 | 렌더와 커밋 | 렌더는 함수 실행과 펼치기까지이고, 커밋은 patch, 폼 맞추기, effect, 측정 보고입니다. 커밋 중의 setState 는 모아 두었다가 커밋이 끝난 뒤 `update()` 한 번으로 처리합니다. 연쇄는 최대 50번이고 넘으면 예외입니다. | `inCommitPhase`, `settle`, `flushPending` |
 | useEffect | 렌더 중에는 실행할 것을 표시만 하고, patch 뒤에 이전 cleanup, `fn()`, 새 cleanup 저장 순서로 실행합니다. effect 하나가 던져도 나머지는 실행하고 예외는 모아 마지막에 던집니다. | `runEffects`, `runOneEffect` |
 | useMemo | deps 가 없으면 매번, `[]` 면 한 번, 그 외에는 원소별 `Object.is` 로 비교합니다. | `hooks.js` `depsChanged`, `useMemo` |
-| 실패 복구 | 렌더 중 예외는 바뀐 Hook 값을 되돌리고 예외를 다시 던집니다(화면은 그대로). patch 중 예외는 새 VDOM 으로 컨테이너 자식을 다시 그려 복구합니다. 그것도 실패하면 직전 VDOM 으로 화면을 맞추고 값을 되돌립니다. | `renderOrUndo`, `applyOrRecover`, `swapChildren` |
+| 실패 복구 | 렌더 중 예외는 setter 로 바뀐 state 값을 되돌리고 예외를 다시 던집니다(화면은 그대로). 실패한 렌더 도중 다시 계산된 `useMemo` 값과 deps 는 되돌리지 않습니다. patch 중 예외는 새 VDOM 으로 컨테이너 자식을 다시 그려 복구합니다. 그것도 실패하면 직전 VDOM 으로 화면을 맞추고 값을 되돌립니다. | `renderOrUndo`, `applyOrRecover`, `swapChildren` |
 | 입력 보호 | 입력값이 다를 때만 대입하고, props 에 `value` 나 `checked` 가 있는 제어 요소만 맞춥니다(`controlledOnly`). 입력 중 커서와 한글 조합을 건드리지 않기 위해서입니다. | `patch.js` `syncFormState` |
 | 측정 | 커밋마다 `kind`, `ms`, `compared`, `eventOnly`, patch 종류별 개수, `hookCount`, `recovered` 를 `onCommit` 으로 보고합니다. | `report`, `countPatches` |
 | 이벤트 핸들러 | 렌더마다 새 함수가 만들어져 내용이 같아도 `PROPS` patch 가 생기는 것을 v0 에서는 그대로 둡니다. 대신 이벤트만 바뀐 `PROPS` 를 따로 셉니다(`stats.eventOnly`). | `diff.js` `isEventOnly` |
@@ -46,7 +46,7 @@
 | 얻은 것 | 낸 비용 |
 | --- | --- |
 | 단순한 흐름: 상태 변경, 루트 재실행, diff, patch, effect 순서가 한 길입니다. | 상태가 바뀔 때마다 루트와 모든 자식 함수를 다시 실행합니다. 오목 데모에서는 칸 225개를 매번 다시 펼치고 비교합니다. |
-| 실패해도 화면, VDOM, Hook 값이 서로 어긋난 채 남지 않습니다. | 복구 경로(값 되돌리기, 다시 그리기, 예외 모으기)로 코드가 길어졌습니다. 이를 정상 흐름 밖으로 분리해 읽기 부담을 줄였습니다. |
+| 실패해도 화면, VDOM, state 값이 서로 어긋난 채 남지 않습니다. (실패한 렌더가 다시 계산한 `useMemo` 저장값은 예외입니다. 다음 정상 렌더에서 deps 를 비교해 다시 맞춥니다.) | 복구 경로(값 되돌리기, 다시 그리기, 예외 모으기)로 코드가 길어졌습니다. 이를 정상 흐름 밖으로 분리해 읽기 부담을 줄였습니다. |
 | 렌더와 커밋 구분으로 setState 규칙이 두 줄로 요약됩니다(렌더 중이면 예외, 커밋 중이면 모았다가 한 번). | effect 예외 처리는 실제 React 와 다릅니다. 하나가 던져도 나머지를 실행하고 마지막에 던집니다. |
 | 측정값이 렌더마다 나와 버전 비교의 기준이 됩니다. | 렌더마다 새 핸들러 함수가 생겨 이벤트만 바뀐 `PROPS` patch 가 많이 생깁니다. 안정된 핸들러를 만들 수단(`useCallback` 에 해당하는 것)이 없습니다. |
 | 입력 중 커서와 한글 조합이 보호됩니다. | 한글 조합 자체는 jsdom 이 흉내 내지 못해, 자동 테스트는 "값이 같으면 대입하지 않음" 까지만 확인합니다. |
