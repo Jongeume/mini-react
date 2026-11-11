@@ -3,7 +3,7 @@ const nodeTest = require('node:test');
 const { JSDOM } = require('jsdom');
 
 /** 바뀌지 않는 공통 테스트를 돌릴 엔진 폴더 이름들 (v3 · v4 는 뒤에 덧붙인다) */
-const COMMON_ENGINES = ['v2-microtask', 'v3-handlers'];
+const COMMON_ENGINES = ['v2-microtask', 'v3-handlers', 'v4-ref'];
 
 /** 새 문서를 만들고, body 안에 html 을 넣은 상자(#root)를 돌려준다 */
 function setup(html = '') {
