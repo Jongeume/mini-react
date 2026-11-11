@@ -18,6 +18,16 @@
   const observer = new root.MutationObserver((list) => { totals.dom += list.length; });
   observer.observe(container, { subtree: true, childList: true, attributes: true, characterData: true });
 
+  // 리스너 API 호출 수 : 엔진과 무관하게 Element.prototype 의 add/removeEventListener 를 감싸 커밋 사이 호출을 센다
+  let listenerOps = 0;
+  for (const name of ['addEventListener', 'removeEventListener']) {
+    const original = root.Element.prototype[name];
+    root.Element.prototype[name] = function (...args) {
+      listenerOps += 1;
+      return original.apply(this, args);
+    };
+  }
+
   /* 패널 · 세부 패널 안 [data-cell=name] 칸에 글자를 쓰는 함수 */
   function setCell(name, value) {
     const el = doc.querySelector(`[data-cell="${name}"]`);
@@ -85,14 +95,16 @@
     if (panel.querySelector('#flash-dom').checked) flashMutations(records);
     totals.commits += 1;
     const p = report.patches;
-    const patchSum = p.CREATE + p.REMOVE + p.REPLACE + p.TEXT + p.PROPS;
+    const patchSum = p.CREATE + p.REMOVE + p.REPLACE + p.TEXT + p.PROPS + (p.HANDLERS || 0);
     setCell('commits', totals.commits);
     setCell('dom', totals.dom);
     setCell('kind', report.kind + (report.recovered ? ' (복구됨)' : ''));
     setCell('cause', Omok.cause);
     setCell('ms', report.ms.toFixed(2));
     setCell('compared', report.compared);
-    setCell('patches', `CREATE ${p.CREATE} · REMOVE ${p.REMOVE} · REPLACE ${p.REPLACE} · TEXT ${p.TEXT} · PROPS ${p.PROPS}`);
+    setCell('patches', `CREATE ${p.CREATE} · REMOVE ${p.REMOVE} · REPLACE ${p.REPLACE} · TEXT ${p.TEXT} · PROPS ${p.PROPS} · HANDLERS ${p.HANDLERS || 0}`);
+    setCell('listener-ops', listenerOps);
+    listenerOps = 0;
     setCell('event-only', report.eventOnly);
 
     log.unshift({ no: totals.commits, cause: Omok.cause, patches: patchSum, ms: report.ms });
@@ -166,12 +178,14 @@
     if (p.type === 'TEXT') return `"${String(p.value).slice(0, 30)}"`;
     if (p.type === 'CREATE' || p.type === 'REPLACE') return '새 ' + describeVnode(p.node);
     if (p.type === 'REMOVE') return '그 자리 노드 지움';
+    if (p.type === 'HANDLERS') return Object.keys(p.set).map((k) => k + '(함수)').join(' · ');
     const keys = Object.keys(p.set).map((k) => (typeof p.set[k] === 'function' ? k + '(함수)' : `${k}=${JSON.stringify(p.set[k])}`));
     return keys.concat(p.remove.map((k) => '−' + k)).join(' · ');
   }
 
-  /* PROPS 명령이 클릭 함수 같은 이벤트 함수만 바꿨는지 확인하는 함수 */
+  /* PROPS · HANDLERS 명령이 클릭 함수 같은 이벤트 함수만 바꿨는지 확인하는 함수 */
   function eventOnly(p) {
+    if (p.type === 'HANDLERS') return true;
     return p.type === 'PROPS' && p.remove.length === 0
       && Object.keys(p.set).every((k) => /^on/i.test(k) && typeof p.set[k] === 'function');
   }
