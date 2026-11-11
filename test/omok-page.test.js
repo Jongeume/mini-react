@@ -6,10 +6,12 @@ const path = require('node:path');
 const { JSDOM } = require('jsdom');
 
 const ROOT = path.join(__dirname, '..');
-const SCRIPTS = ['engines/v1-batch/vdom.js', 'engines/v1-batch/diff.js', 'engines/v1-batch/patch.js', 'engines/v1-batch/hooks.js', 'engines/v1-batch/component.js', 'omok/game.js', 'omok/panel.js'];
+const { tick } = require('./helpers');
+const ENGINE_FILES = ['vdom', 'diff', 'patch', 'hooks', 'component'];
 
-/* omok.html 을 올리고 스크립트를 실행한 뒤, 커밋 보고 목록과 함께 window 를 돌려주는 함수 (로더는 jsdom 이 불러오지 않는다) */
-function loadPage(t) {
+/* index.html 을 올리고 엔진(기본 v1-batch) · 오목 · 패널 스크립트를 실행한 뒤, 커밋 보고 목록과 함께 window 를 돌려주는 함수 (로더는 jsdom 이 불러오지 않는다) */
+function loadPage(t, engine = 'v1-batch') {
+  const SCRIPTS = ENGINE_FILES.map((f) => `engines/${engine}/${f}.js`).concat(['omok/game.js', 'omok/panel.js']);
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'http://localhost/index.html' });
   for (const file of SCRIPTS) dom.window.eval(fs.readFileSync(path.join(ROOT, file), 'utf8'));
@@ -154,4 +156,41 @@ test('왼쪽 위 엔진 버튼이 패널을 펼치고 접는다, 패널에 커�
   assert.ok(Number(panel.querySelector('[data-cell="commits"]').textContent) >= 2);
   toggle.click();
   assert.ok(!panel.classList.contains('open'));
+});
+
+test('[v3-handlers] 타이머 1회 커밋은 PROPS 0, HANDLERS > 0, 리스너 API 0', async (t) => {
+  const { win, reports } = loadPage(t, 'v3-handlers');
+  place(win, 112);
+  await tick();
+  reports.length = 0;
+  win.Omok.tick();
+  await tick();
+  assert.strictEqual(reports.length, 1);
+  const p = reports[0].patches;
+  assert.strictEqual(p.PROPS, 0);
+  assert.ok(p.HANDLERS > 0);
+  assert.strictEqual(win.document.querySelector('[data-cell="listener-ops"]').textContent, '0');
+});
+
+test('[v3-handlers] 세부 목록을 열고 숨김 체크를 꺼도 타이머 커밋의 리스너 API 호출은 0 (패널 자신의 리스너는 세지 않는다)', async (t) => {
+  const { win } = loadPage(t, 'v3-handlers');
+  const doc = win.document;
+  doc.getElementById('panel-toggle').click();
+  doc.querySelector('.detail-toggle').click();
+  doc.getElementById('hide-event-only').checked = false;
+  place(win, 112);
+  await tick();
+  win.Omok.tick();
+  await tick();
+  assert.ok(doc.querySelectorAll('.patch-list li').length > 0);
+  assert.strictEqual(doc.querySelector('[data-cell="listener-ops"]').textContent, '0');
+});
+
+test('[v2-microtask] 착수 뒤 타이머 커밋은 리스너 API 호출이 0 보다 크다 — 세기 장치가 동작하는지 확인', async (t) => {
+  const { win } = loadPage(t, 'v2-microtask');
+  place(win, 112);
+  await tick();
+  win.Omok.tick();
+  await tick();
+  assert.ok(Number(win.document.querySelector('[data-cell="listener-ops"]').textContent) > 0);
 });

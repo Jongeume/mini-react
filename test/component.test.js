@@ -4,7 +4,8 @@ const { setup, COMMON_ENGINES, eachEngine } = require('./helpers');
 
 /** 엔진마다 같은 테스트를 돌린다 */
 eachEngine(COMMON_ENGINES, ({ vdom: { h }, component: { FunctionComponent, expand } }, name, test) => {
-  const PATCH_KEYS = ['CREATE', 'REMOVE', 'REPLACE', 'TEXT', 'PROPS'];
+  // v3 부터 보고에 HANDLERS 키가 하나 더 있다
+  const PATCH_KEYS = ['CREATE', 'REMOVE', 'REPLACE', 'TEXT', 'PROPS'].concat(name === 'v2-microtask' ? [] : ['HANDLERS']);
 
   test('mount: 함수를 펼쳐 컨테이너에 처음 그린다', () => {
     const { rootEl } = setup();
@@ -45,7 +46,7 @@ eachEngine(COMMON_ENGINES, ({ vdom: { h }, component: { FunctionComponent, expan
     assert.throws(() => c.mount(), /이미/);
   });
 
-  test('onCommit: kind mount, patches 다섯 키가 숫자, ms >= 0 으로 한 번 불린다', () => {
+  test('onCommit: kind mount, patches 키가 모두 숫자, ms >= 0 으로 한 번 불린다', () => {
     const { rootEl } = setup();
     const reports = [];
     const c = new FunctionComponent(() => h('p', null, 'x'), {}, rootEl);
