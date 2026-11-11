@@ -278,13 +278,13 @@ flowchart TB
 <summary><b>온라인 데모</b></summary>
 <br>
 
-`dev` 브랜치를 raw.githack.com으로 제공합니다. 처음 접속하면 안내 화면이 표시되며, "Open the page"를 선택하면 데모가 열립니다.
+`main` 브랜치를 raw.githack.com으로 제공합니다. 처음 접속하면 안내 화면이 표시되며, "Open the page"를 선택하면 데모가 열립니다.
 
 | 시연 | 링크 | 조작 |
 |---|---|---|
-| 1. Diff와 Patch | [phase1.html](https://raw.githack.com/Jongeume/mini-react/dev/phase1.html) | 테스트 영역 수정 후 Patch |
-| 2. Hooks | [오목 (v2)](https://raw.githack.com/Jongeume/mini-react/dev/index.html) | 엔진 패널에서 "바뀐 DOM 강조"와 "세부 목록" 선택 |
-| 3. 배칭 | [v0](https://raw.githack.com/Jongeume/mini-react/dev/index.html?engine=v0) · [v1](https://raw.githack.com/Jongeume/mini-react/dev/index.html?engine=v1-batch) · [v2](https://raw.githack.com/Jongeume/mini-react/dev/index.html?engine=v2-microtask) | 엔진 패널의 커밋 기록 비교 |
+| 1. Diff와 Patch | [phase1.html](https://raw.githack.com/Jongeume/mini-react/main/phase1.html) | 테스트 영역 수정 후 Patch |
+| 2. Hooks | [오목 (v2)](https://raw.githack.com/Jongeume/mini-react/main/index.html) | 엔진 패널에서 "바뀐 DOM 강조"와 "세부 목록" 선택 |
+| 3. 배칭 | [v0](https://raw.githack.com/Jongeume/mini-react/main/index.html?engine=v0) · [v1](https://raw.githack.com/Jongeume/mini-react/main/index.html?engine=v1-batch) · [v2](https://raw.githack.com/Jongeume/mini-react/main/index.html?engine=v2-microtask) | 엔진 패널의 커밋 기록 비교 |
 
 시연 GIF는 `node docs/demo/record.mjs` 실행 후 `python docs/demo/make_gif.py`로 다시 만들 수 있습니다.
 </details>
