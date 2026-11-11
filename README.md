@@ -127,30 +127,39 @@ flowchart TB
 
 ## 🔁 실행 흐름
 
-칸을 클릭해 돌을 둘 때(v2 기준)의 순서입니다.
+칸을 클릭해 돌을 둘 때(v2 기준)의 순서입니다. 이벤트 안에서는 값만 바꾸고, 호출 스택이 빈 뒤 갱신 주기를 한 번 돕니다.
 
 ```mermaid
-sequenceDiagram
-  autonumber
-  actor U as 사용자
-  participant G as App (game.js)
-  participant H as hooks.js
-  participant C as FunctionComponent
-  participant D as diff.js
-  participant P as patch.js
+%%{init: {"flowchart": {"curve": "stepBefore", "nodeSpacing": 30, "rankSpacing": 40}}}%%
+flowchart TB
+  subgraph S1["① 이벤트 안 — 값만 바꾸고 예약"]
+    direction LR
+    CLICK["칸 클릭<br/>game.js · place()"]
+    SET["setHistory · setMoveIndex<br/>hooks.js · 값 저장"]
+    QUEUE["렌더 1회 예약<br/>hooks.js · queueMicrotask"]
+    CLICK --> SET --> QUEUE
+  end
 
-  U->>G: 칸 클릭, place()
-  G->>H: setHistory(...), setMoveIndex(...)
-  Note over H: 값 저장, queueMicrotask 1회 예약
-  Note over U,P: 호출 스택이 비워짐
-  H->>C: flushBatched, settle, updateOnce
-  C->>G: App() 재실행 (Hook 번호 0부터)
-  G-->>C: Virtual DOM
-  C->>C: expand (자식 컴포넌트 실행)
-  C->>D: diff(이전 VDOM, 새 VDOM)
-  D-->>C: 변경 명령 목록
-  C->>P: applyPatches
-  C->>C: runEffects
+  subgraph S2["② 호출 스택이 빈 뒤 — 갱신 주기 1번"]
+    direction LR
+    RUN["App() 다시 실행<br/>Hook 번호 0부터"]
+    EXPAND["expand<br/>자식 실행 · 새 VDOM"]
+    DIFF["diff<br/>변경 명령 목록"]
+    PATCH["applyPatches<br/>실제 DOM 반영"]
+    EFFECT["runEffects<br/>탭 제목 갱신"]
+    RUN --> EXPAND --> DIFF --> PATCH --> EFFECT
+  end
+
+  S1 -->|"flushBatched → settle → updateOnce"| S2
+
+  classDef app fill:#e8faf2,stroke:#05b673,color:#16403b
+  classDef core fill:#05d184,stroke:#04a86a,color:#ffffff
+  classDef mod fill:#ffffff,stroke:#05b673,color:#16403b
+  class CLICK,RUN app
+  class EXPAND,EFFECT core
+  class SET,QUEUE,DIFF,PATCH mod
+  style S1 fill:#f7fdfa,stroke:#b9ebd5,color:#16403b
+  style S2 fill:#f7fdfa,stroke:#b9ebd5,color:#16403b
 ```
 
 <details>
