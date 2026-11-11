@@ -9,7 +9,7 @@
 <p>
   <img src="https://img.shields.io/badge/Vanilla-JS-05d184?style=for-the-badge&labelColor=1e4d4b">
   <img src="https://img.shields.io/badge/runtime_deps-0-05d184?style=for-the-badge&labelColor=1e4d4b">
-  <img src="https://img.shields.io/badge/tests-631_passing-05d184?style=for-the-badge&labelColor=1e4d4b">
+  <img src="https://img.shields.io/badge/tests-643_passing-05d184?style=for-the-badge&labelColor=1e4d4b">
   <img src="https://img.shields.io/badge/engines-v0_·_v1_·_v2_·_v3_·_v4-05d184?style=for-the-badge&labelColor=1e4d4b">
 </p>
 
@@ -84,7 +84,7 @@ flowchart TB
 
 ### 컴포넌트 계층 (오목 데모)
 
-상태 10칸(`useState` 6, `useMemo` 2, `useEffect` 2)은 모두 `App`의 `hooks` 배열에 있습니다(v4에서는 `useRef` 2칸이 더해집니다). 자식은 props만 받아 화면을 그립니다.
+상태 10칸(`useState` 6, `useMemo` 2, `useEffect` 2)은 모두 `App`의 `hooks` 배열에 있습니다(v4에서는 `useRef` 2칸과 `useEffect` 2칸이 더해져 14칸이 됩니다). 자식은 props만 받아 화면을 그립니다.
 
 ```mermaid
 %%{init: {"flowchart": {"curve": "stepBefore", "nodeSpacing": 24, "rankSpacing": 46}}}%%
@@ -228,7 +228,7 @@ flowchart TB
 - 줄어든 것은 리스너 API 호출입니다. DOM 변경 수(MutationObserver로 센 값)는 v2와 v3이 같습니다. 핸들러 교체는 원래 DOM에 보이는 변화가 아니기 때문입니다.
 - 이벤트마다 공용 리스너를 한 번만 붙이고, 핸들러 교체는 요소별 표의 값만 바꿉니다.
 
-**`useRef` (v4)** 값 상자(`{ current }`)와 DOM `ref` 속성을 더했습니다. 오목은 타이머가 읽는 "지금 차례"를 `useRef`에 두고(v0부터 v3은 파일 수준 객체), 마지막 기보 줄에 `ref`를 달아 착수할 때마다 그 줄로 스크롤합니다. ref는 패치 뒤 effect 전에 한 번에 맞춥니다(`syncRefs`).
+**`useRef` (v4)** 값 상자(`{ current }`)와 DOM `ref` 속성을 더했습니다. 오목은 타이머가 읽는 "지금 차례"를 `useRef`에 두고(v0부터 v3은 파일 수준 객체), 마지막 기보 줄에 `ref`를 달아 새 수를 둘 때마다(무르기 뒤 다시 두어 기보 길이가 같아도) 그 줄로 스크롤합니다. ref는 패치 뒤 effect 전에 한 번에 맞춥니다(`syncRefs`).
 
 | | 얻는 것 | 내주는 것 |
 |---|---|---|
@@ -322,7 +322,7 @@ flowchart TB
 
 | 항목 | 결과 | 비고 |
 |---|---|---|
-| 단위 테스트 (`npm test`) | **631개 통과**, 실패 0 | Node 내장 테스트 러너와 jsdom (러너 집계 `tests 631`, `pass 631`, `fail 0`) |
+| 단위 테스트 (`npm test`) | **643개 테스트 통과**, 실패 0 | Node 내장 테스트 러너와 jsdom (러너 집계 `tests 644`는 `test/helpers.js` 포함, `pass 644`, `fail 0`) |
 | 공통 테스트 행렬 | v2, v3, v4 세 엔진에서 같은 테스트를 실행 | vdom, diff, patch, hooks, effect, 컴포넌트, 자식 등 |
 | 엔진 전용 | v2 · v3 · v4 각각 | `test/v2-microtask.test.js` · `test/v3-handlers.test.js` · `test/v4-ref.test.js` |
 | 오목 페이지 | 다섯 엔진(v0 · v1 · v2 · v3 · v4) 모두 | `test/omok-page.test.js` |
@@ -381,7 +381,7 @@ flowchart TB
 
 ```bash
 npm install        # 개발 의존성 jsdom (테스트용)
-npm test           # 단위 테스트 631개
+npm test           # 단위 테스트 643개 (러너 집계 644는 test/helpers.js 포함)
 # index.html       오목 데모, 브라우저로 바로 열기 (서버 불필요)
 # phase1.html      Phase 1 검증 페이지
 ```

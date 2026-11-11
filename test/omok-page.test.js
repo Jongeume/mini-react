@@ -1,4 +1,4 @@
-// 오목 데모(index.html) 기능 테스트: jsdom 에 페이지를 올리고 v1 엔진 · 오목 · 패널 스크립트를 순서대로 실행해 확인한다
+// 오목 데모(index.html) 기능 테스트: jsdom 에 페이지를 올리고 엔진(v0 ~ v4) · 오목 · 패널 스크립트를 순서대로 실행해 확인한다
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
@@ -14,7 +14,7 @@ const perSetter = (engine) => engine === 'v0';
 const microtask = (engine) => engine !== 'v0' && engine !== 'v1-batch';
 const ALL_ENGINES = ['v0', 'v1-batch', 'v2-microtask', 'v3-handlers', 'v4-ref'];
 
-/* index.html 을 올리고 엔진(기본 v1-batch) · 오목 · 패널 스크립트를 실행한 뒤, 커밋 보고 목록과 함께 window 를 돌려주는 함수 (로더는 jsdom 이 불러오지 않는다) */
+/* index.html 을 올리고 엔진(인자로 고르며 기본 v1-batch, 다섯 엔진 행렬은 ALL_ENGINES) · 오목 · 패널 스크립트를 실행한 뒤, 커밋 보고 목록과 함께 window 를 돌려주는 함수 (로더는 jsdom 이 불러오지 않는다) */
 function loadPage(t, engine = 'v1-batch') {
   const SCRIPTS = ENGINE_FILES.map((f) => `engines/${engine}/${f}.js`).concat(['omok/game.js', 'omok/panel.js']);
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
@@ -205,6 +205,20 @@ test('[v4-ref] 착수하면 마지막 기보 줄로 scrollIntoView 를 부른다
   assert.strictEqual(last.arg.block, 'nearest');
 });
 
+test('[v4-ref] 착수 · 무르기 · 다시 착수해 기보 길이가 같아도 마지막 줄로 다시 스크롤한다', async (t) => {
+  const { win } = loadPage(t, 'v4-ref');
+  const calls = [];
+  win.Element.prototype.scrollIntoView = function () { calls.push(this); };
+  await place(win, 0);
+  const afterFirst = calls.length;
+  await press(win, '무르기');
+  await place(win, 5);
+  const items = win.document.querySelectorAll('.moves li');
+  assert.strictEqual(items.length, 1);
+  assert.ok(calls.length > afterFirst);
+  assert.strictEqual(calls[calls.length - 1], items[0]);
+});
+
 test('[v4-ref] 타이머는 착수 중에도 지금 차례에 1초를 더한다', async (t) => {
   const { win } = loadPage(t, 'v4-ref');
   await place(win, 112);
@@ -223,33 +237,35 @@ test('[v4-ref] 패널 Hooks 목록의 ref 칸은 current 가 요소면 <태그> 
 });
 
 
-test('[v3-handlers] 타이머 1회 커밋은 PROPS 0, HANDLERS > 0, 리스너 API 0', async (t) => {
-  const { win, reports } = loadPage(t, 'v3-handlers');
-  place(win, 112);
-  await tick();
-  reports.length = 0;
-  win.Omok.tick();
-  await tick();
-  assert.strictEqual(reports.length, 1);
-  const p = reports[0].patches;
-  assert.strictEqual(p.PROPS, 0);
-  assert.ok(p.HANDLERS > 0);
-  assert.strictEqual(win.document.querySelector('[data-cell="listener-ops"]').textContent, '0');
-});
+for (const engine of ['v3-handlers', 'v4-ref']) {
+  test(`[${engine}] 타이머 1회 커밋은 PROPS 0, HANDLERS > 0, 리스너 API 0`, async (t) => {
+    const { win, reports } = loadPage(t, engine);
+    place(win, 112);
+    await tick();
+    reports.length = 0;
+    win.Omok.tick();
+    await tick();
+    assert.strictEqual(reports.length, 1);
+    const p = reports[0].patches;
+    assert.strictEqual(p.PROPS, 0);
+    assert.ok(p.HANDLERS > 0);
+    assert.strictEqual(win.document.querySelector('[data-cell="listener-ops"]').textContent, '0');
+  });
 
-test('[v3-handlers] 세부 목록을 열고 숨김 체크를 꺼도 타이머 커밋의 리스너 API 호출은 0 (패널 자신의 리스너는 세지 않는다)', async (t) => {
-  const { win } = loadPage(t, 'v3-handlers');
-  const doc = win.document;
-  doc.getElementById('panel-toggle').click();
-  doc.querySelector('.detail-toggle').click();
-  doc.getElementById('hide-event-only').checked = false;
-  place(win, 112);
-  await tick();
-  win.Omok.tick();
-  await tick();
-  assert.ok(doc.querySelectorAll('.patch-list li').length > 0);
-  assert.strictEqual(doc.querySelector('[data-cell="listener-ops"]').textContent, '0');
-});
+  test(`[${engine}] 세부 목록을 열고 숨김 체크를 꺼도 타이머 커밋의 리스너 API 호출은 0 (패널 자신의 리스너는 세지 않는다)`, async (t) => {
+    const { win } = loadPage(t, engine);
+    const doc = win.document;
+    doc.getElementById('panel-toggle').click();
+    doc.querySelector('.detail-toggle').click();
+    doc.getElementById('hide-event-only').checked = false;
+    place(win, 112);
+    await tick();
+    win.Omok.tick();
+    await tick();
+    assert.ok(doc.querySelectorAll('.patch-list li').length > 0);
+    assert.strictEqual(doc.querySelector('[data-cell="listener-ops"]').textContent, '0');
+  });
+}
 
 test('[v2-microtask] 착수 뒤 타이머 커밋은 리스너 API 호출이 0 보다 크다 — 세기 장치가 동작하는지 확인', async (t) => {
   const { win } = loadPage(t, 'v2-microtask');

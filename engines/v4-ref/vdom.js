@@ -24,7 +24,7 @@
         .map((c) => (typeof c === 'object' ? c : text(String(c)))),
     };
     // [v4] ref 는 속성이 아니라 vnode 칸으로 뗀다 (없으면 칸을 만들지 않는다)
-    if (vnode.props.ref !== undefined) {
+    if (vnode.props.ref !== undefined && vnode.props.ref !== null) {
       if (typeof vnode.props.ref === 'function') throw new Error('ref 는 { current } 객체만 지원합니다 (콜백 ref 미지원)');
       vnode.ref = vnode.props.ref;
     }

@@ -46,7 +46,7 @@
 
 ## 검증
 
-`npm test` 를 2026-11-12 에 실행했을 때 전체 631개가 통과했습니다(실패 0). v4 전용 테스트는 `test/v4-ref.test.js` 이고, 오목 쪽은 `test/omok-page.test.js` 입니다.
+`npm test` 를 2026-11-12 에 실행했을 때 643개 테스트가 통과했습니다(러너 집계 644는 test/helpers.js 포함, 실패 0). v4 전용 테스트는 `test/v4-ref.test.js` 이고, 오목 쪽은 `test/omok-page.test.js` 입니다.
 
 | 확인하는 것 | 테스트 이름 |
 | --- | --- |
@@ -55,7 +55,7 @@
 | 속성 비노출 | "ref 는 DOM 속성으로 나가지 않는다" (오목: "DOM 에 ref 속성이 없다 (세 수를 둔 뒤)") |
 | effect 시점 | "effect 안에서 ref.current 는 이미 실제 요소다 (mount · update)" |
 | 제거와 교체 | "요소가 지워지면 ref.current 는 null", "REPLACE 로 바뀐 요소를 ref 가 가리킨다", "ref 객체가 바뀌면 옛 ref 는 null, 새 ref 는 요소" |
-| 복구 경로 | "렌더 예외 복구 뒤 ref 는 화면 요소를 가리킨다", "복구마저 실패해도 ref 는 화면 요소를 가리킨다" |
+| 복구 경로 | "patch 실패 복구 뒤 ref 는 화면 요소를 가리킨다", "복구마저 실패해도 ref 는 화면 요소를 가리킨다" |
 | 정리 | "destroy 하면 ref.current 는 null" |
 | 금지 | "콜백 ref 는 예외", "조건에 따라 useRef 와 다른 Hook 이 바뀌면 Hook 종류 예외" |
 | 오목 | "[v4-ref] 착수하면 마지막 기보 줄로 scrollIntoView 를 부른다", "[v4-ref] 타이머는 착수 중에도 지금 차례에 1초를 더한다" |
