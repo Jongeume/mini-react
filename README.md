@@ -129,30 +129,39 @@ flowchart TB
 
 ## 🔁 실행 흐름
 
-칸을 클릭해 돌을 둘 때(v2 기준)의 순서입니다.
+칸을 클릭해 돌을 둘 때(v2 기준)의 순서입니다. 이벤트 안에서는 값만 바꾸고, 호출 스택이 빈 뒤 갱신 주기를 한 번 돕니다.
 
 ```mermaid
-sequenceDiagram
-  autonumber
-  actor U as 사용자
-  participant G as App (game.js)
-  participant H as hooks.js
-  participant C as FunctionComponent
-  participant D as diff.js
-  participant P as patch.js
+%%{init: {"flowchart": {"curve": "stepBefore", "nodeSpacing": 30, "rankSpacing": 40}}}%%
+flowchart TB
+  subgraph S1["① 이벤트 안 — 값만 바꾸고 예약"]
+    direction LR
+    CLICK["칸 클릭<br/>game.js · place()"]
+    SET["setHistory · setMoveIndex<br/>hooks.js · 값 저장"]
+    QUEUE["렌더 1회 예약<br/>hooks.js · queueMicrotask"]
+    CLICK --> SET --> QUEUE
+  end
 
-  U->>G: 칸 클릭, place()
-  G->>H: setHistory(...), setMoveIndex(...)
-  Note over H: 값 저장, queueMicrotask 1회 예약
-  Note over U,P: 호출 스택이 비워짐
-  H->>C: flushBatched, settle, updateOnce
-  C->>G: App() 재실행 (Hook 번호 0부터)
-  G-->>C: Virtual DOM
-  C->>C: expand (자식 컴포넌트 실행)
-  C->>D: diff(이전 VDOM, 새 VDOM)
-  D-->>C: 변경 명령 목록
-  C->>P: applyPatches
-  C->>C: runEffects
+  subgraph S2["② 호출 스택이 빈 뒤 — 갱신 주기 1번"]
+    direction LR
+    RUN["App() 다시 실행<br/>Hook 번호 0부터"]
+    EXPAND["expand<br/>자식 실행 · 새 VDOM"]
+    DIFF["diff<br/>변경 명령 목록"]
+    PATCH["applyPatches<br/>실제 DOM 반영"]
+    EFFECT["runEffects<br/>탭 제목 갱신"]
+    RUN --> EXPAND --> DIFF --> PATCH --> EFFECT
+  end
+
+  S1 -->|"flushBatched → settle → updateOnce"| S2
+
+  classDef app fill:#e8faf2,stroke:#05b673,color:#16403b
+  classDef core fill:#05d184,stroke:#04a86a,color:#ffffff
+  classDef mod fill:#ffffff,stroke:#05b673,color:#16403b
+  class CLICK,RUN app
+  class EXPAND,EFFECT core
+  class SET,QUEUE,DIFF,PATCH mod
+  style S1 fill:#f7fdfa,stroke:#b9ebd5,color:#16403b
+  style S2 fill:#f7fdfa,stroke:#b9ebd5,color:#16403b
 ```
 
 <details>
@@ -178,7 +187,7 @@ sequenceDiagram
 |:---:|---|---|
 | **v0** | setter 호출마다 즉시 | 묶지 않음. 기록과 현재 수가 맞지 않는 중간 상태가 렌더됩니다 |
 | **v1** | 엔진이 등록한 이벤트 핸들러가 반환될 때 | 이벤트 안의 변경만. 타이머와 `await` 이후는 `batch(fn)`로 직접 감싸야 합니다 |
-| **v2** | 현재 실행 중인 코드가 끝난 직후(마이크로태스크) | 호출 위치와 관계없이 같은 작업 안의 변경 |
+| **v2** | 현재 실행 중인 코드가 끝난 직후(마이크로태스크) | 호출 위치와 관계없이, 예약된 반영이 실행되기 전까지 모인 변경 |
 | **v3** | v2와 같음. 핸들러만 바뀐 요소는 `HANDLERS`(핸들러 표 교체) | 렌더 시점은 그대로이고 리스너 API 호출을 줄입니다 |
 | **v4** | v3과 같음. `useRef`와 DOM `ref` 추가 (데모 기본값) | 렌더 시점은 그대로이고 타이머 값과 기보 스크롤에 `ref`를 씁니다 |
 
@@ -191,7 +200,9 @@ sequenceDiagram
 | 타이머 1초 (이벤트 외부) | 2 | 2 | 2 | **1** |
 | 첫 저장 (`await` 전 1, 후 2) | 3 | 3 | 3 | **2** |
 
-- 값이 변하지 않는 setter는 렌더하지 않습니다(`Object.is` 비교). 전체 초기화의 v0 결과가 4인 이유는 `savedAt`이 이미 `null`이기 때문입니다.
+- 값이 변하지 않는 setter는 렌더하지 않습니다(`Object.is` 비교). 그래서 v0 결과는 화면 상태에 따라 달라집니다.
+	- 위 전체 초기화 4는 **두 수를 두고 시간이 1초 이상 흐른 뒤, 저장한 적이 없는** 상태에서 잰 값입니다. `savedAt`이 이미 `null`이라 setter 하나가 렌더하지 않습니다.
+	- 시간이 흐르기 전이면 `total`도 이미 0이라 v0는 3입니다. v1 · v2는 어느 경우든 1입니다.
 - 저장의 v2 결과가 2인 이유는 `await` 전후가 서로 다른 작업이기 때문입니다. 저장 중 상태를 한 번 표시해야 합니다.
 
 ### 트레이드오프: v2가 얻는 것과 내주는 것
@@ -200,7 +211,7 @@ sequenceDiagram
 |---|---|---|
 | **묶는 범위** | 타이머, `await` 이후의 변경도 감싸지 않고 묶입니다 | 하나의 작업이 끝날 때까지 화면 반영이 미뤄집니다 |
 | **DOM 읽기** | 중간 상태가 그려지지 않습니다 | setter 직후에는 DOM이 아직 갱신되지 않습니다. 즉시 읽어야 하면 `flushSync(fn)`를 사용합니다 |
-| **예외 처리** | 렌더 중 예외가 나면 값을 되돌리고 이전 화면을 유지합니다 | 예약된 렌더의 예외는 setter를 호출한 코드로 전달되지 않아 `reportError`로 보고합니다 |
+| **예외 처리** | 렌더 중 예외가 나면 setter로 바꾼 state 값을 되돌리고 이전 화면을 유지합니다 | 예약된 렌더의 예외는 setter를 호출한 코드로 전달되지 않아 `reportError`로 보고합니다 |
 
 ### v3 · v4: 핸들러 상자와 `useRef`
 
@@ -260,7 +271,7 @@ sequenceDiagram
 - 착수할 때마다 `hooks[0]`(판 기록)이 `Array(1)`, `Array(2)`, `Array(3)`으로 늘어납니다.
 - `hooks[1]`(현재 수)은 0, 1, 2로 바뀝니다.
 - setter를 2번 불러도 커밋 기록에는 착수가 **1줄씩만** 쌓입니다(렌더 1번).
-- 새 돌 `<span class="stone B">`만 `CREATE`되고, 노란 칸으로 표시됩니다.
+- 첫 착수에서 `CREATE`는 새 돌 `<span class="stone B">` 하나뿐이고, 노란 칸으로 표시됩니다. 두 번째 착수부터는 기보의 새 `<li>`도 함께 `CREATE`됩니다.
 
 **왜 이렇게 만들었나**
 
@@ -286,21 +297,21 @@ sequenceDiagram
 
 | 고른 방식 | 얻는 것 | 내주는 것 |
 |---|---|---|
-| 작업의 끝 = 호출 스택이 비는 시점 (`queueMicrotask`) | 이벤트, 타이머, `await` 이후 어디서 불러도 변경이 묶입니다 | setter 직후에는 DOM이 아직 옛 값입니다. 바로 읽으려면 `flushSync(fn)`를 씁니다 |
+| 작업의 끝 = 호출 스택이 비는 시점 (`queueMicrotask`) | 이벤트, 타이머, `await` 이후 어디서 불러도, 예약된 반영 전까지 모인 변경이 한 번에 묶입니다 | setter 직후에는 DOM이 아직 옛 값입니다. 바로 읽으려면 `flushSync(fn)`를 씁니다 |
 | (비교) v1 이벤트 경계 | 엔진이 등록한 이벤트 안의 변경은 묶습니다 | 타이머, `await` 이후의 변경은 `batch(fn)`로 직접 감싸야 합니다. 그래서 기본값에서 뺐습니다 |
 
 <details>
 <summary><b>온라인 데모</b></summary>
 <br>
 
-`dev` 브랜치를 raw.githack.com으로 제공합니다. 처음 접속하면 안내 화면이 표시되며, "Open the page"를 선택하면 데모가 열립니다.
+`main` 브랜치를 raw.githack.com으로 제공합니다. 처음 접속하면 안내 화면이 표시되며, "Open the page"를 선택하면 데모가 열립니다.
 
 | 시연 | 링크 | 조작 |
 |---|---|---|
-| 1. Diff와 Patch | [phase1.html](https://raw.githack.com/Jongeume/mini-react/dev/phase1.html) | 테스트 영역 수정 후 Patch |
-| 2. Hooks | [오목 (v4, 기본값)](https://raw.githack.com/Jongeume/mini-react/dev/index.html) | 엔진 패널에서 "바뀐 DOM 강조"와 "세부 목록" 선택 |
-| 3. 배칭 | [v0](https://raw.githack.com/Jongeume/mini-react/dev/index.html?engine=v0) · [v1](https://raw.githack.com/Jongeume/mini-react/dev/index.html?engine=v1-batch) · [v2](https://raw.githack.com/Jongeume/mini-react/dev/index.html?engine=v2-microtask) | 엔진 패널의 커밋 기록 비교 |
-| 4. 핸들러 · ref | [v3](https://raw.githack.com/Jongeume/mini-react/dev/index.html?engine=v3-handlers) · [v4](https://raw.githack.com/Jongeume/mini-react/dev/index.html?engine=v4-ref) | 착수 뒤 패널의 `PROPS` · `HANDLERS` · 리스너 API 호출 셀 비교 |
+| 1. Diff와 Patch | [phase1.html](https://raw.githack.com/Jongeume/mini-react/main/phase1.html) | 테스트 영역 수정 후 Patch |
+| 2. Hooks | [오목 (v4, 기본값)](https://raw.githack.com/Jongeume/mini-react/main/index.html) | 엔진 패널에서 "바뀐 DOM 강조"와 "세부 목록" 선택 |
+| 3. 배칭 | [v0](https://raw.githack.com/Jongeume/mini-react/main/index.html?engine=v0) · [v1](https://raw.githack.com/Jongeume/mini-react/main/index.html?engine=v1-batch) · [v2](https://raw.githack.com/Jongeume/mini-react/main/index.html?engine=v2-microtask) | 엔진 패널의 커밋 기록 비교 |
+| 4. 핸들러 · ref | [v3](https://raw.githack.com/Jongeume/mini-react/main/index.html?engine=v3-handlers) · [v4](https://raw.githack.com/Jongeume/mini-react/main/index.html?engine=v4-ref) | 착수 뒤 패널의 `PROPS` · `HANDLERS` · 리스너 API 호출 셀 비교 |
 
 시연 GIF는 `node docs/demo/record.mjs` 실행 후 `python docs/demo/make_gif.py`로 다시 만들 수 있습니다.
 </details>
@@ -327,7 +338,7 @@ sequenceDiagram
 | 조건문으로 Hook 개수나 종류가 변경됨 | 예외 발생 | v1 |
 | 자식 컴포넌트에서 `useState` 호출 | 예외 발생 | v1 |
 | 렌더 중 `setState` 호출 | 예외 발생 | v1 |
-| 렌더 중 예외 발생 | 변경한 값을 되돌리고 이전 화면 유지 | v1, v2 |
+| 렌더 중 예외 발생 | setter로 변경한 state 값을 되돌리고 이전 화면 유지 | v1, v2 |
 | 값이 변하지 않는 setter만 호출 | 렌더하지 않음 | v1, v2 |
 | 함수형 setter `n => n + 1` 3회 호출 | 결과 +3, 렌더 1회 | v1, v2 |
 | effect에서 setter를 반복 호출 | 후속 갱신 50회 초과 시 `update loop` 예외, 마지막 변경 묶음 복원 | v1 |
