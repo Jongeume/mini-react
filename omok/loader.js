@@ -3,11 +3,13 @@
   'use strict';
 
   const ENGINES = {
-    'v2-microtask': { base: 'engines/v2-microtask/', label: 'v2 마이크로태스크 배칭 (최신)' },
+    'v4-ref': { base: 'engines/v4-ref/', label: 'v4 useRef' },
+    'v3-handlers': { base: 'engines/v3-handlers/', label: 'v3 핸들러 상자' },
+    'v2-microtask': { base: 'engines/v2-microtask/', label: 'v2 마이크로태스크 배칭' },
     'v1-batch': { base: 'engines/v1-batch/', label: 'v1 이벤트 경계 배칭' },
     v0: { base: 'engines/v0/', label: 'v0 배칭 없음' },
   };
-  const DEFAULT = 'v2-microtask';
+  const DEFAULT = 'v4-ref';
   const ENGINE_FILES = ['vdom', 'diff', 'patch', 'hooks', 'component'];
   const APP_FILES = ['omok/game.js', 'omok/panel.js'];
 
