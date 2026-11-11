@@ -23,8 +23,14 @@ eachEngine(COMMON_ENGINES, ({ vdom: V, diff: { diff }, patch: { syncFormState } 
     const s = { compared: 0, eventOnly: 0 };
     const patches = diff(a, b, s);
     assert.strictEqual(patches.length, 1);
-    assert.strictEqual(patches[0].type, 'PROPS');
-    assert.strictEqual(s.eventOnly, 1);
+    // v3 부터 함수 교체는 HANDLERS 라 PROPS 로 세지 않는다
+    if (name === 'v2-microtask') {
+      assert.strictEqual(patches[0].type, 'PROPS');
+      assert.strictEqual(s.eventOnly, 1);
+    } else {
+      assert.strictEqual(patches[0].type, 'HANDLERS');
+      assert.strictEqual(s.eventOnly, 0);
+    }
   });
 
   test('class 도 다르면 eventOnly 는 0 이다', () => {

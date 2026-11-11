@@ -149,7 +149,9 @@ eachEngine(COMMON_ENGINES, ({ vdom: { h }, hooks: H, patch: P, component: { Func
     });
     set(1);
     await tick();
-    assert.ok(reports[reports.length - 1].eventOnly >= 1);
+    // v3 부터 함수 교체는 HANDLERS 라 eventOnly(PROPS 중 이벤트만) 에 잡히지 않는다
+    if (name === 'v2-microtask') assert.ok(reports[reports.length - 1].eventOnly >= 1);
+    else assert.equal(reports[reports.length - 1].patches.HANDLERS, 1);
     rootEl.firstChild.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     assert.deepEqual(calls, [1]);
   });
