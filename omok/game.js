@@ -2,7 +2,7 @@
 (function (root) {
   'use strict';
 
-  const { h, useState, useMemo, useEffect } = root.MiniReact;
+  const { h, useState, useMemo, useEffect, useRef } = root.MiniReact;
   const doc = root.document;
 
   const SIZE = 15;
@@ -12,7 +12,9 @@
 
   const Omok = { App: null, SIZE, tick: () => {}, cause: '처음 그리기', setCause };
   root.Omok = Omok;
-  const live = { turn: 'B', over: false };
+  // useRef 는 v4 엔진에만 있다 — 없는 엔진에서는 ref · listRef 를 아예 넘기지 않는다
+  const HAS_REF = typeof root.MiniReact.useRef === 'function';
+  const live = { turn: 'B', over: false }; // useRef 가 없는 엔진용 타이머 값
 
   /* 패널에 보일 "이번 갱신을 일으킨 동작" 이름을 정하는 함수 (엔진과 무관한 측정용 표시) */
   function setCause(name) {
@@ -112,12 +114,13 @@
   }
 
   /* 둔 수 목록(기보)을 그리고, 누르면 그 수까지 돌아가게 하는 자식 */
-  function MoveList({ history, moveIndex, onJump }) {
+  function MoveList({ history, moveIndex, onJump, listRef }) {
     const items = history.slice(1).map((step, n) => {
       const no = n + 1;
       const color = n % 2 === 0 ? 'B' : 'W';
       const cls = 'move' + (no === moveIndex ? ' current' : '') + (no > moveIndex ? ' future' : '');
-      return h('li', null,
+      const isLast = n === history.length - 2;
+      return h('li', HAS_REF && isLast ? { ref: listRef } : null,
         h('button', { type: 'button', class: cls, 'data-to': no, onClick: onJump },
           h('span', { class: 'move-no' }, no),
           h('span', { class: 'stone small ' + color }),
@@ -163,17 +166,35 @@
       doc.title = winner ? `${NAME[winner]} 승리 — 미니 리액트 오목` : `${NAME[turn]} 차례 — 미니 리액트 오목`;
     }, [turn, winner]);
 
-    // 타이머가 읽을 "지금 차례 · 끝남" 을 렌더마다 적어 둔다 (실제 React 의 useRef 대신 — 우리 엔진엔 아직 없음)
-    live.turn = turn;
-    live.over = over;
+    // 타이머가 읽을 "지금 차례 · 끝남" 을 적어 둔다 — useRef 가 있으면 deps 없는 effect 로(커밋 뒤), 없으면 렌더 중에 파일 수준 객체에
+    const liveRef = HAS_REF ? useRef({ turn: 'B', over: false }) : null;
+    const lastMoveRef = HAS_REF ? useRef(null) : null;
+    if (HAS_REF) {
+      useEffect(() => {
+        liveRef.current.turn = turn;
+        liveRef.current.over = over;
+      });
+    } else {
+      live.turn = turn;
+      live.over = over;
+    }
+
+    // 착수로 기보가 늘면 마지막 줄이 보이게 스크롤한다 (jsdom 처럼 scrollIntoView 가 없으면 건너뜀)
+    if (HAS_REF) {
+      useEffect(() => {
+        const el = lastMoveRef.current;
+        if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest' });
+      }, [history.length]);
+    }
 
     // 1초마다 setter 두 개 — 엔진 이벤트 밖(타이머)에서 부르는 갱신의 예.
     // 의존성을 [] 로 두어 타이머를 한 번만 켠다. [turn] 으로 두면 착수마다 타이머를 껐다 켜서
     // 1초 안에 계속 두면 시간이 한 번도 오르지 않는다(전체 시간이 멈춘 것처럼 보임).
     useEffect(() => {
       Omok.tick = () => {
-        if (live.over) return;
-        const side = live.turn;
+        const now = HAS_REF ? liveRef.current : live;
+        if (now.over) return;
+        const side = now.turn;
         setCause('타이머 1초');
         setTimes((t) => ({ ...t, [side]: t[side] + 1 }));
         setTotal((s) => s + 1);
@@ -241,7 +262,7 @@
       h('div', { class: 'center' },
         h(Board, { board: current.board, last: current.move, winSet, locked: over, onPlace: place })),
       h('aside', { class: 'side' },
-        h(MoveList, { history, moveIndex, onJump: jump }),
+        h(MoveList, HAS_REF ? { history, moveIndex, onJump: jump, listRef: lastMoveRef } : { history, moveIndex, onJump: jump }),
         h(SaveBox, { saving, savedAt, onSave: save })));
   }
 

@@ -53,6 +53,13 @@
     return s.length > 40 ? s.slice(0, 40) + '…' : s;
   }
 
+  /* ref Hook 값({ current })을 보일 글자로 바꾸는 함수 (current 가 요소면 "<li>" 처럼 태그만) */
+  function briefRef(ref) {
+    const cur = ref && ref.current;
+    if (cur && cur.nodeType === 1) return `<${cur.localName}>`;
+    return brief(cur);
+  }
+
   /* 이번 커밋에서 MutationObserver 가 실제로 기록한 노드만 잠깐 노랗게 칠하는 함수 (글자 변경은 부모 요소를, 추가는 새 요소를) */
   function flashMutations(records) {
     const targets = new Set();
@@ -131,7 +138,7 @@
     hooks.textContent = '';
     Omok.app.inspect().hooks.forEach((hook, i) => {
       const li = doc.createElement('li');
-      li.textContent = `[${i}] ${hook.kind} : ${brief(hook.value)}`;
+      li.textContent = `[${i}] ${hook.kind} : ${hook.kind === 'ref' ? briefRef(hook.value) : brief(hook.value)}`;
       hooks.appendChild(li);
     });
 
