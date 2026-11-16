@@ -357,3 +357,15 @@ button { font: inherit; }
 @media (max-width: 1180px) {
   .top { padding-top: 64px; }
 }
+
+/* 대국 기록 (Redis 캐시) */
+.record .actions { display: flex; gap: 8px; }
+.record-error { margin: 10px 0 0; color: #d93025; font-size: 14px; }
+.summary { margin-top: 12px; font-size: 14px; }
+.summary-head { margin: 0 0 6px; }
+.cache { margin-left: 8px; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: var(--bg); color: var(--muted); }
+.cache.hit { background: #e6f4ea; color: #137333; }
+.cache.miss { background: #fef7e0; color: #b06000; }
+.recent { margin: 0; padding-left: 18px; color: var(--muted); }
+.redis-lines { margin: 12px 0 0; padding: 8px 8px 8px 28px; background: var(--bg); border-radius: 8px; font: 12px/1.6 ui-monospace, Consolas, monospace; word-break: break-all; }
+.redis-lines em { color: var(--blue); font-style: normal; }

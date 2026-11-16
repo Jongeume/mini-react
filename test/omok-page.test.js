@@ -275,3 +275,75 @@ test('[v2-microtask] 착수 뒤 타이머 커밋은 리스너 API 호출이 0 �
   await tick();
   assert.ok(Number(win.document.querySelector('[data-cell="listener-ops"]').textContent) > 0);
 });
+
+/* 가짜 fetch 를 window 에 넣고, 불린 요청을 calls 에 모으는 함수 (응답 body 는 body 로 고정) */
+function fakeFetch(win, body, status = 200) {
+  const calls = [];
+  win.fetch = async (url, opts) => {
+    calls.push({ url, opts });
+    return { ok: status < 400, status, json: async () => body };
+  };
+  return calls;
+}
+
+const SUMMARY_BODY = {
+  cache: 'miss',
+  summary: {
+    recent: [{ id: 2, winner: 'W', moves: 30 }, { id: 1, winner: 'B', moves: 21 }],
+    total: 2, blackWins: 1, whiteWins: 1, draws: 0, builtAt: '2026-11-16T00:00:00.000Z',
+  },
+  redis: [
+    { reason: 'summary-read', command: 'GET gomoku:recent-summary', reply: '(nil)' },
+    { reason: 'cache-fill', command: 'SET gomoku:recent-summary {"recent":… EX 30', reply: 'OK' },
+  ],
+};
+
+for (const engine of ALL_ENGINES) {
+  test(`[${engine}] RecordBox 가 그려지고, 대국 전에는 결과 저장이 비활성이다 (마운트 때 fetch 호출 없음)`, async (t) => {
+    const { win } = loadPage(t, engine);
+    const calls = fakeFetch(win, SUMMARY_BODY);
+    const buttons = Array.from(win.document.querySelectorAll('.record button'));
+    assert.deepStrictEqual(buttons.map((b) => b.textContent.trim()), ['결과 저장', '최근 대국 요약']);
+    assert.ok(buttons[0].disabled);
+    assert.ok(!buttons[1].disabled);
+    assert.strictEqual(calls.length, 0);
+  });
+}
+
+for (const engine of ['v1-batch', 'v4-ref']) {
+  test(`[${engine}] 최근 대국 요약을 누르면 요약 표 · 캐시 표시 · Redis 명령 줄이 응답 개수만큼 그려진다`, async (t) => {
+    const { win } = loadPage(t, engine);
+    const calls = fakeFetch(win, SUMMARY_BODY);
+    await press(win, '최근 대국 요약');
+    await tick();
+    assert.match(calls[0].url, /\/api\/games\/summary$/);
+    const lines = Array.from(win.document.querySelectorAll('[data-role="redis-line"]')).map((l) => l.textContent);
+    assert.strictEqual(lines.length, 2);
+    assert.match(lines[0], /GET gomoku:recent-summary → \(nil\)/);
+    const text = win.document.querySelector('.record').textContent;
+    assert.match(text, /캐시 미스/);
+    assert.match(text, /전체 2판/);
+  });
+
+  test(`[${engine}] 대국이 끝나면 결과 저장이 켜지고, 누르면 POST 한 뒤 한 판에 한 번만 저장된다`, async (t) => {
+    const { win } = loadPage(t, engine);
+    const calls = fakeFetch(win, { saved: { id: 1 }, redis: [{ reason: 'invalidate-after-save', command: 'DEL gomoku:recent-summary', reply: '(integer) 1' }] });
+    for (let k = 0; k < 4; k++) { await place(win, k); await place(win, 15 + k); }
+    await place(win, 4);
+    await press(win, '결과 저장');
+    await tick();
+    assert.match(calls[0].url, /\/api\/games$/);
+    assert.deepStrictEqual(JSON.parse(calls[0].opts.body), { winner: 'B', moves: 9 });
+    assert.strictEqual(win.document.querySelectorAll('[data-role="redis-line"]').length, 1);
+    const save = Array.from(win.document.querySelectorAll('.record button')).find((b) => b.textContent.trim() === '결과 저장');
+    assert.ok(save.disabled);
+  });
+
+  test(`[${engine}] fetch 가 없으면 백엔드에 연결할 수 없음만 보인다`, async (t) => {
+    const { win } = loadPage(t, engine);
+    await press(win, '최근 대국 요약');
+    await tick();
+    assert.match(win.document.querySelector('.record').textContent, /백엔드에 연결할 수 없음/);
+    assert.strictEqual(win.document.querySelectorAll('[data-role="redis-line"]').length, 0);
+  });
+}
