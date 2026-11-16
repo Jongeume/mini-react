@@ -9,6 +9,7 @@
   const NAME = { B: '흑돌', W: '백돌' };
   const STARS = new Set([3 * SIZE + 3, 3 * SIZE + 11, 7 * SIZE + 7, 11 * SIZE + 3, 11 * SIZE + 11]);
   const SAVE_DELAY = 600;
+  const OFFLINE = '백엔드에 연결할 수 없음';
 
   const Omok = { App: null, SIZE, tick: () => {}, cause: '처음 그리기', setCause };
   root.Omok = Omok;
@@ -142,6 +143,31 @@
       h('p', { class: 'save-note' }, note));
   }
 
+  /* 승패 글자(B · W · draw)를 화면용 이름으로 바꾸는 함수 */
+  function winnerName(w) {
+    return w === 'draw' ? '무승부' : NAME[w] + ' 승';
+  }
+
+  /* 대국 기록 저장 · 최근 대국 요약 버튼과 요약 표 · 캐시 표시 · Redis 명령 목록을 그리는 자식 */
+  function RecordBox({ canSave, busy, summary, cache, lines, error, onSave, onSummary }) {
+    const s = summary;
+    return h('section', { class: 'box record' },
+      h('h2', null, '대국 기록 (Redis 캐시)'),
+      h('div', { class: 'actions' },
+        h('button', { type: 'button', class: 'btn', onClick: onSave, disabled: !canSave || busy }, '결과 저장'),
+        h('button', { type: 'button', class: 'btn', onClick: onSummary, disabled: busy }, '최근 대국 요약')),
+      error ? h('p', { class: 'record-error' }, error) : null,
+      s ? h('div', { class: 'summary' },
+        h('p', { class: 'summary-head' },
+          `전체 ${s.total}판 · 흑 승 ${s.blackWins} · 백 승 ${s.whiteWins} · 무 ${s.draws}`,
+          cache ? h('span', { class: 'cache ' + cache }, cache === 'hit' ? '캐시 적중' : '캐시 미스') : null),
+        h('ul', { class: 'recent' }, s.recent.map((g) =>
+          h('li', null, `#${g.id} ${winnerName(g.winner)} · ${g.moves}수`)))) : null,
+      lines.length > 0 ? h('ol', { class: 'redis-lines' }, lines.map((l) =>
+        h('li', { 'data-role': 'redis-line' },
+          h('em', null, l.reason + ' '), `${l.command} → ${l.reply}`))) : null);
+  }
+
   // ───────── 루트 : 모든 상태와 Hook 은 여기에만 ─────────
 
   /* 오목 상태(판 기록 · 현재 수 · 시간 · 저장)를 모두 가진 루트 */
@@ -152,6 +178,8 @@
     const [total, setTotal] = useState(0);
     const [saving, setSaving] = useState(false);
     const [savedAt, setSavedAt] = useState(null);
+    // 백엔드 호출 결과 한 덩어리 — savedBoard 는 결과를 저장한 판(같은 판은 한 번만 저장)
+    const [rec, setRec] = useState({ busy: false, summary: null, cache: null, lines: [], error: null, savedBoard: null });
 
     const current = history[moveIndex];
     const turn = moveIndex % 2 === 0 ? 'B' : 'W';
@@ -252,6 +280,41 @@
       setSavedAt(at);
     };
 
+    /* 백엔드를 부르고 응답(Redis 명령 목록 포함)을 rec 에 담는 함수 — await 뒤 setter 는 엔진 이벤트 밖이다 */
+    const callBackend = async (url, options, name, onOk) => {
+      setCause(name + ' 시작');
+      if (typeof root.fetch !== 'function') {
+        setRec((r) => ({ ...r, error: OFFLINE }));
+        return;
+      }
+      setRec((r) => ({ ...r, busy: true, error: null }));
+      let data = null;
+      let ok = false;
+      try {
+        const res = await root.fetch(url, options);
+        ok = res.ok;
+        data = await res.json();
+      } catch (e) {
+        data = null;
+      }
+      setCause(name + ' 끝 (await 뒤)');
+      if (data === null) return setRec((r) => ({ ...r, busy: false, error: OFFLINE }));
+      setRec((r) => ({ ...r, ...(ok ? onOk(data) : {}), busy: false, lines: data.redis || [], error: ok ? null : data.error || OFFLINE }));
+    };
+    /* 끝난 대국의 승자 · 수를 백엔드에 저장하는 함수 */
+    const saveResult = () => {
+      const board = current.board;
+      callBackend('/api/games', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ winner: winner || 'draw', moves: moveIndex }),
+      }, '결과 저장', () => ({ savedBoard: board }));
+    };
+    /* 최근 대국 요약(캐시 적중 · 미스)을 백엔드에서 받아 오는 함수 */
+    const loadSummary = () => {
+      callBackend('/api/games/summary', { method: 'GET' }, '최근 대국 요약', (d) => ({ summary: d.summary, cache: d.cache }));
+    };
+
     return h('div', { class: 'layout' },
       h('aside', { class: 'side' },
         h('section', { class: 'box' },
@@ -263,7 +326,12 @@
         h(Board, { board: current.board, last: current.move, winSet, locked: over, onPlace: place })),
       h('aside', { class: 'side' },
         h(MoveList, HAS_REF ? { history, moveIndex, onJump: jump, listRef: lastMoveRef } : { history, moveIndex, onJump: jump }),
-        h(SaveBox, { saving, savedAt, onSave: save })));
+        h(SaveBox, { saving, savedAt, onSave: save }),
+        h(RecordBox, {
+          canSave: over && rec.savedBoard !== current.board,
+          busy: rec.busy, summary: rec.summary, cache: rec.cache, lines: rec.lines, error: rec.error,
+          onSave: saveResult, onSummary: loadSummary,
+        })));
   }
 
   Omok.App = App;

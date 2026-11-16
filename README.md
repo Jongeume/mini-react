@@ -9,7 +9,7 @@
 <p>
   <img src="https://img.shields.io/badge/Vanilla-JS-05d184?style=for-the-badge&labelColor=1e4d4b">
   <img src="https://img.shields.io/badge/runtime_deps-0-05d184?style=for-the-badge&labelColor=1e4d4b">
-  <img src="https://img.shields.io/badge/tests-643_passing-05d184?style=for-the-badge&labelColor=1e4d4b">
+  <img src="https://img.shields.io/badge/tests-662_passing-05d184?style=for-the-badge&labelColor=1e4d4b">
   <img src="https://img.shields.io/badge/engines-v0_·_v1_·_v2_·_v3_·_v4-05d184?style=for-the-badge&labelColor=1e4d4b">
 </p>
 
@@ -318,11 +318,39 @@ flowchart TB
 
 <br>
 
+### 4. Mini Redis 캐시 (대국 기록)
+
+![요약 조회가 캐시에 적중하고, 결과를 저장하면 백엔드가 DEL로 요약 캐시를 지우며, 다시 조회하면 GET이 nil이 되어 새 요약을 SET EX 30으로 저장하는 화면](docs/demo/demo-4-redis-cache.gif)
+
+> **보는 곳** 대국 기록 상자의 Redis 명령 목록과 오른쪽 로그
+
+오목 화면에 대국 결과 저장과 최근 대국 요약을 붙였습니다. 백엔드는 [Mini Redis](https://github.com/Jongeume/mini-redis)(C, RESP2)에 요약을 캐싱합니다.
+
+```
+오목 화면 → HTTP/JSON → backend/gomoku-api.js → TCP/RESP2 → Mini Redis
+```
+
+| 앱 동작 | 백엔드와 Mini Redis의 처리 |
+|---|---|
+| 최근 대국 요약 | `GET gomoku:recent-summary`. 미스면 원본 기록으로 요약을 만들고 `SET … EX 30` |
+| 결과 저장 | 원본 기록(JSON 파일) 저장이 성공한 뒤에만 `DEL gomoku:recent-summary` |
+
+```bash
+../mini-redis/mini-redis.exe                       # Mini Redis 저장소에서 빌드한 실행 파일
+node backend/gomoku-api.js --redis-port 6379       # http://127.0.0.1:8090/ 에서 오목 화면과 API 제공
+```
+
+- 화면은 버튼을 누를 때만 백엔드를 부릅니다. `index.html`을 파일로 열면 "백엔드에 연결할 수 없음"만 표시합니다.
+- `test/gomoku-backend.test.js`는 실제 Mini Redis를 띄워 적중, 무효화, 재조회, 원본 저장 실패를 확인합니다. 실행 파일이 없으면 건너뜁니다.
+- GIF는 `node docs/demo/record-redis.mjs` 실행 후 `python docs/demo/make_redis_gif.py`로 다시 만듭니다.
+
+<br>
+
 ## ✅ 검증
 
 | 항목 | 결과 | 비고 |
 |---|---|---|
-| 단위 테스트 (`npm test`) | **643개 테스트 통과**, 실패 0 | Node 내장 테스트 러너와 jsdom (러너 집계 `tests 644`는 `test/helpers.js` 포함, `pass 644`, `fail 0`) |
+| 단위 테스트 (`npm test`) | **662개 테스트 통과**, 실패 0 | Node 내장 테스트 러너와 jsdom (러너 집계 `tests 663`은 `test/helpers.js` 포함, `pass 663`, `fail 0`) |
 | 공통 테스트 행렬 | v2, v3, v4 세 엔진에서 같은 테스트를 실행 | vdom, diff, patch, hooks, effect, 컴포넌트, 자식 등 |
 | 엔진 전용 | v2 · v3 · v4 각각 | `test/v2-microtask.test.js` · `test/v3-handlers.test.js` · `test/v4-ref.test.js` |
 | 오목 페이지 | 다섯 엔진(v0 · v1 · v2 · v3 · v4) 모두 | `test/omok-page.test.js` |
@@ -381,7 +409,7 @@ flowchart TB
 
 ```bash
 npm install        # 개발 의존성 jsdom (테스트용)
-npm test           # 단위 테스트 643개 (러너 집계 644는 test/helpers.js 포함)
+npm test           # 단위 테스트 662개 (러너 집계 663은 test/helpers.js 포함)
 # index.html       오목 데모, 브라우저로 바로 열기 (서버 불필요)
 # phase1.html      Phase 1 검증 페이지
 ```
