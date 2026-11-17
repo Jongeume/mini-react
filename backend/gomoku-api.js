@@ -1,5 +1,6 @@
 /* 오목 백엔드 — 대국 기록 원본은 JSON 파일, 요약은 Mini Redis 에 캐시한다 (HTTP/JSON ↔ TCP/RESP2)
-   실행 : node backend/gomoku-api.js [--port 8090] [--redis-port 6379] [--data backend/data/games.json] */
+   온라인 대전 방 · 좌석 : 방 상태는 이 프로세스 메모리에, 좌석 순번은 Mini Redis 의 INCR 로 정한다
+   실행 : node backend/gomoku-api.js [--port 8090] [--redis-port 6379] [--data backend/data/games.json] [--seat-mode incr|getset] */
 'use strict';
 
 const http = require('node:http');
@@ -12,6 +13,9 @@ const KEY = 'gomoku:recent-summary';
 const TTL_SECONDS = 30;
 const RECENT = 5;
 const WINNERS = new Set(['B', 'W', 'draw']);
+const NAME_MAX = 20;
+const SEAT_MODES = new Set(['incr', 'getset']);
+const ROLES = ['black', 'white']; // 순번 1 = 흑, 2 = 백, 3 이상 = 관전자
 const BLOCKED = new Set(['.git', 'node_modules', 'backend']); // 정적 서빙에서 제외할 최상위 폴더
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -23,14 +27,16 @@ const TYPES = {
   '.md': 'text/markdown; charset=utf-8',
 };
 
-/* 명령줄 인자(--port, --redis-port, --data)를 읽는 함수 */
+/* 명령줄 인자(--port, --redis-port, --data, --seat-mode)를 읽는 함수 */
 function parseArgs(argv) {
-  const opts = { port: 8090, redisPort: 6379, data: path.join(__dirname, 'data', 'games.json') };
+  const opts = { port: 8090, redisPort: 6379, data: path.join(__dirname, 'data', 'games.json'), seatMode: 'incr' };
   for (let i = 0; i < argv.length; i += 2) {
     if (argv[i] === '--port') opts.port = Number(argv[i + 1]);
     else if (argv[i] === '--redis-port') opts.redisPort = Number(argv[i + 1]);
     else if (argv[i] === '--data') opts.data = path.resolve(argv[i + 1]);
+    else if (argv[i] === '--seat-mode') opts.seatMode = argv[i + 1];
   }
+  if (!SEAT_MODES.has(opts.seatMode)) throw new Error(`--seat-mode 는 incr 또는 getset 이어야 함: ${opts.seatMode}`);
   return opts;
 }
 
@@ -72,8 +78,9 @@ function buildSummary(games) {
 }
 
 /* 서버를 만들어 돌려주는 함수 (listen 은 호출한 쪽에서) */
-function createServer({ redisPort, data }) {
+function createServer({ redisPort, data, seatMode = 'incr' }) {
   const redis = createClient({ port: redisPort });
+  const rooms = new Map(); // 방 번호 → { id, black, white, spectators } (Mini Redis 에는 번호만 둔다)
   let queue = Promise.resolve(); // 기록 저장 · 캐시 무효화를 한 번에 하나씩 처리하는 대기열
 
   /* Redis 에 명령을 보내고 로그 한 줄과 { reason, command, reply } 를 남기는 함수 */
@@ -119,6 +126,48 @@ function createServer({ redisPort, data }) {
     return { saved: record };
   }
 
+  /* 이름을 다듬어 돌려주는 함수 (비었거나 NAME_MAX 자를 넘으면 null) */
+  function cleanName(name) {
+    if (typeof name !== 'string') return null;
+    const trimmed = name.trim();
+    return trimmed.length >= 1 && [...trimmed].length <= NAME_MAX ? trimmed : null;
+  }
+
+  /* 방의 좌석 순번을 Mini Redis 에서 받아 오는 함수 (기본은 INCR 한 번, getset 은 비교용) */
+  async function nextSeat(ctx, id) {
+    const key = `gomoku:room:${id}:seats`;
+    if (seatMode === 'incr') return redisStep(ctx, 'seat-incr', ['INCR', key]);
+    // 비교용 · 시연 전용 : 읽고(GET) +1 해서 쓰는(SET) 두 명령이라 동시 요청이 같은 순번을 받을 수 있다
+    const current = await redisStep(ctx, 'seat-compare-get', ['GET', key]);
+    const seat = (current === null ? 0 : Number(current)) + 1;
+    await redisStep(ctx, 'seat-compare-set', ['SET', key, String(seat)]);
+    return seat;
+  }
+
+  /* 받은 순번만 보고 역할을 정해 방에 이름을 적고 입장 결과를 돌려주는 함수 */
+  async function seatPlayer(ctx, room, name) {
+    const seat = await nextSeat(ctx, room.id);
+    const role = seat <= ROLES.length ? ROLES[seat - 1] : 'spectator';
+    if (role === 'spectator') room.spectators.push(name);
+    else room[role] = name;
+    return { room: room.id, seat, role, name };
+  }
+
+  /* 방을 화면용 객체로 바꾸는 함수 (관전자는 이름 목록) */
+  function roomView(room) {
+    const playing = room.black !== null && room.white !== null;
+    return { room: room.id, black: room.black, white: room.white, spectators: room.spectators.slice(), status: playing ? '플레이 중' : '대기 중' };
+  }
+
+  /* 방 만들기 — 번호를 INCR 로 받고, 만든 사람도 다른 사람과 같은 방식으로 좌석을 받는다 */
+  async function createRoom(ctx, name) {
+    const id = await redisStep(ctx, 'room-id', ['INCR', 'gomoku:room:next-id']);
+    const room = { id, black: null, white: null, spectators: [] };
+    const joined = await seatPlayer(ctx, room, name);
+    rooms.set(id, room);
+    return joined;
+  }
+
   /* 요청 본문을 JSON 으로 읽는 함수 (잘못되면 null) */
   function readJson(req) {
     return new Promise((resolve) => {
@@ -130,10 +179,43 @@ function createServer({ redisPort, data }) {
     });
   }
 
+  /* 실패를 응답으로 바꾸는 함수 (원본 저장 실패는 500, 그 밖에는 Redis 연결 실패로 보고 503) */
+  function sendFailure(res, ctx, err) {
+    if (err.status === 500) return sendJson(res, 500, { error: err.message, redis: ctx.redis });
+    console.log(`${stamp()} ${ctx.req} Redis 연결 실패 : ${err.message}`);
+    sendJson(res, 503, { error: `Mini Redis 에 연결할 수 없음 (${err.message})`, redis: ctx.redis });
+  }
+
+  /* 방 API(목록 · 하나 · 만들기 · 입장)를 처리하는 함수 (없는 방 404, 이름 오류 400) */
+  async function handleRooms(req, res, ctx, route) {
+    if (route === 'GET /api/rooms') {
+      return sendJson(res, 200, { rooms: Array.from(rooms.values(), (r) => ({ ...roomView(r), spectators: r.spectators.length })) });
+    }
+    const one = route.match(/^GET \/api\/rooms\/(\d+)$/);
+    if (one) {
+      const room = rooms.get(Number(one[1]));
+      return room ? sendJson(res, 200, roomView(room)) : sendJson(res, 404, { error: '없는 방' });
+    }
+    const join = route.match(/^POST \/api\/rooms\/(\d+)\/join$/);
+    if (!join && route !== 'POST /api/rooms') return sendJson(res, 404, { error: '없는 API' });
+    const room = join ? rooms.get(Number(join[1])) : null;
+    if (join && !room) return sendJson(res, 404, { error: '없는 방' });
+    const body = await readJson(req);
+    const name = cleanName(body && body.name);
+    if (name === null) return sendJson(res, 400, { error: `name 은 1~${NAME_MAX}자 글자여야 함` });
+    try {
+      const joined = join ? await seatPlayer(ctx, room, name) : await createRoom(ctx, name);
+      sendJson(res, 200, { ...joined, redis: ctx.redis });
+    } catch (err) {
+      sendFailure(res, ctx, err);
+    }
+  }
+
   /* API 경로 하나를 처리하는 함수 (Redis 연결 실패는 503, 원본 저장 실패는 500) */
   async function handleApi(req, res) {
     const ctx = { req: `${req.method} ${req.url}`, redis: [] };
     const route = req.method + ' ' + req.url.split('?')[0];
+    if (route.includes(' /api/rooms')) return handleRooms(req, res, ctx, route);
     if (route !== 'GET /api/games/summary' && route !== 'POST /api/games') {
       return sendJson(res, 404, { error: '없는 API' });
     }
@@ -149,9 +231,7 @@ function createServer({ redisPort, data }) {
         : await (queue = queue.catch(() => {}).then(() => addGame(ctx, body)));
       sendJson(res, 200, { ...result, redis: ctx.redis });
     } catch (err) {
-      if (err.status === 500) return sendJson(res, 500, { error: err.message, redis: ctx.redis });
-      console.log(`${stamp()} ${ctx.req} Redis 연결 실패 : ${err.message}`);
-      sendJson(res, 503, { error: `Mini Redis 에 연결할 수 없음 (${err.message})`, redis: ctx.redis });
+      sendFailure(res, ctx, err);
     }
   }
 

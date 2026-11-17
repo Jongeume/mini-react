@@ -9,7 +9,7 @@
 <p>
   <img src="https://img.shields.io/badge/Vanilla-JS-05d184?style=for-the-badge&labelColor=1e4d4b">
   <img src="https://img.shields.io/badge/runtime_deps-0-05d184?style=for-the-badge&labelColor=1e4d4b">
-  <img src="https://img.shields.io/badge/tests-662_passing-05d184?style=for-the-badge&labelColor=1e4d4b">
+  <img src="https://img.shields.io/badge/tests-692_passing-05d184?style=for-the-badge&labelColor=1e4d4b">
   <img src="https://img.shields.io/badge/engines-v0_·_v1_·_v2_·_v3_·_v4-05d184?style=for-the-badge&labelColor=1e4d4b">
 </p>
 
@@ -350,7 +350,7 @@ node backend/gomoku-api.js --redis-port 6379       # http://127.0.0.1:8090/ 에�
 
 | 항목 | 결과 | 비고 |
 |---|---|---|
-| 단위 테스트 (`npm test`) | **662개 테스트 통과**, 실패 0 | Node 내장 테스트 러너와 jsdom (러너 집계 `tests 663`은 `test/helpers.js` 포함, `pass 663`, `fail 0`) |
+| 단위 테스트 (`npm test`) | **692개 테스트 통과**, 실패 0 | Node 내장 테스트 러너와 jsdom (러너 집계 `tests 693`은 `test/helpers.js` 포함, `pass 693`, `fail 0`) |
 | 공통 테스트 행렬 | v2, v3, v4 세 엔진에서 같은 테스트를 실행 | vdom, diff, patch, hooks, effect, 컴포넌트, 자식 등 |
 | 엔진 전용 | v2 · v3 · v4 각각 | `test/v2-microtask.test.js` · `test/v3-handlers.test.js` · `test/v4-ref.test.js` |
 | 오목 페이지 | 다섯 엔진(v0 · v1 · v2 · v3 · v4) 모두 | `test/omok-page.test.js` |
@@ -409,10 +409,13 @@ node backend/gomoku-api.js --redis-port 6379       # http://127.0.0.1:8090/ 에�
 
 ```bash
 npm install        # 개발 의존성 jsdom (테스트용)
-npm test           # 단위 테스트 662개 (러너 집계 663은 test/helpers.js 포함)
+npm test           # 단위 테스트 692개 (러너 집계 693은 test/helpers.js 포함)
 # index.html       오목 데모, 브라우저로 바로 열기 (서버 불필요)
 # phase1.html      Phase 1 검증 페이지
 ```
+
+온라인 대전은 백엔드가 필요합니다. `node backend/gomoku-api.js`로 띄우고(Mini Redis 실행 필요) `http://127.0.0.1:8090`을 열어 첫 화면에서 온라인 대전을 고릅니다. 서버 없이 `index.html`만 열면 싱글 플레이만 동작합니다.
+방 입장 순번은 Mini Redis의 `INCR`로 정합니다. `node docs/demo/join-race.mjs`는 두 명을 동시에 입장시켜 순번과 역할을 보여 주고, 백엔드를 `--seat-mode getset`으로 띄우면 읽고 쓰는 방식에서 같은 순번이 나오는 비교를 볼 수 있습니다.
 
 엔진 버전은 엔진 패널에서 고르거나 URL에 `?engine=v0`, `?engine=v1-batch`, `?engine=v2-microtask`, `?engine=v3-handlers`, `?engine=v4-ref`를 붙입니다. 기본값은 v4입니다.
 
