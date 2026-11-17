@@ -369,3 +369,25 @@ button { font: inherit; }
 .recent { margin: 0; padding-left: 18px; color: var(--muted); }
 .redis-lines { margin: 12px 0 0; padding: 8px 8px 8px 28px; background: var(--bg); border-radius: 8px; font: 12px/1.6 ui-monospace, Consolas, monospace; word-break: break-all; }
 .redis-lines em { color: var(--blue); font-style: normal; }
+
+/* 모드 선택 · 온라인 대전 */
+.online { width: min(100%, 560px); margin: 0 auto; padding: 0 16px; }
+.mode-buttons { display: flex; gap: 12px; }
+.name-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; color: var(--sub); font-weight: 600; }
+.name-input { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font: inherit; color: var(--ink); background: var(--card); }
+.name-input:focus-visible { outline: 3px solid var(--blue-line); outline-offset: 1px; }
+.lobby h3 { margin: 20px 0 10px; font-size: 14px; color: var(--muted); }
+.online-note { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: #fef7e0; color: #b06000; font-size: 14px; word-break: break-all; }
+.room-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.room-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--bg); font-size: 14px; }
+.room-no { font-weight: 700; color: var(--blue); min-width: 36px; }
+.room-players { flex: 1; min-width: 0; font-weight: 600; }
+.room-spectators { color: var(--muted); }
+.room-status { padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: #fef7e0; color: #b06000; }
+.room-status.playing { background: #e6f4ea; color: #137333; }
+.room-join { width: auto; padding: 8px 14px; background: var(--card); }
+.role-badge { display: inline-block; margin: 0 0 14px; padding: 6px 14px; border-radius: 999px; font-weight: 700; background: var(--blue-soft); color: var(--blue-dark); }
+.role-badge.black { background: var(--ink); color: #fff; }
+.role-badge.white { background: var(--card); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.seat-command { margin: 0 0 14px; padding: 8px 10px; border-radius: 8px; background: var(--bg); font: 12px/1.6 ui-monospace, Consolas, monospace; word-break: break-all; }
+.preview-board { --cell: min(20px, calc((100cqw - 96px) / 15)); margin: 0 auto 16px; }

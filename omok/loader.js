@@ -11,7 +11,7 @@
   };
   const DEFAULT = 'v4-ref';
   const ENGINE_FILES = ['vdom', 'diff', 'patch', 'hooks', 'component'];
-  const APP_FILES = ['omok/game.js', 'omok/panel.js'];
+  const APP_FILES = ['omok/game.js', 'omok/online.js', 'omok/panel.js'];
 
   const asked = new URLSearchParams(root.location.search).get('engine');
   const key = Object.prototype.hasOwnProperty.call(ENGINES, asked) ? asked : DEFAULT;

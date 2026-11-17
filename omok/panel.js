@@ -309,8 +309,16 @@
   toggle.addEventListener('click', () => setOpen(!panel.classList.contains('open')));
   panel.querySelector('.panel-close').addEventListener('click', () => setOpen(false));
 
-  Omok.app = new FunctionComponent(Omok.App, {}, container);
-  Omok.app.onCommit(onCommit);
+  /* 지금 루트를 걷어 내고 rootFn 을 새 루트로 mount 하는 함수 (모드를 바꿀 때마다 루트 하나씩) */
+  function mountRoot(rootFn) {
+    if (Omok.app) Omok.app.destroy();
+    Omok.app = new FunctionComponent(rootFn, {}, container);
+    Omok.app.onCommit(onCommit);
+    Omok.app.mount();
+  }
+
+  // online.js 가 있으면 모드 선택 루트로 시작한다 (없으면 오목 App 하나)
+  Omok.go = (name) => mountRoot(Omok.roots[name]);
   counting = true;
-  Omok.app.mount();
+  mountRoot(Omok.Start || Omok.App);
 })(globalThis);
